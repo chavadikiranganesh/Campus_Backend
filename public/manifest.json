@@ -1,0 +1,9 @@
+{
+  "name": "Campus Utility",
+  "short_name": "Campus Utility",
+  "description": "Student utility platform — resources, accommodation, events, study groups",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb"
+}

@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :focus-visible {
+    @apply outline-none ring-2 ring-blue-500/40 ring-offset-2 ring-offset-slate-50 dark:ring-blue-400/40 dark:ring-offset-slate-950;
+  }
+
+  a {
+    @apply underline-offset-4;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    @apply transition-colors;
+  }
+
+  ::selection {
+    @apply bg-blue-200 text-slate-900 dark:bg-blue-900/60 dark:text-slate-50;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 font-sans antialiased dark:bg-slate-950 dark:text-slate-100;
+}
+
+/* Scrollbar – light */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  @apply bg-slate-100 dark:bg-slate-900;
+}
+
+*::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300 dark:bg-slate-600;
+}
+
+.dark *::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.dark *::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
