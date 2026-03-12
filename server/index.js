@@ -2,7 +2,14 @@ require('dotenv').config()
 const mongoose = require('mongoose')
 const express = require('express')
 const cors = require('cors')
+const Razorpay = require("razorpay")
 const { User, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification } = require('./models')
+
+// Razorpay Setup
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+})
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -21,6 +28,25 @@ app.use(express.json())
 app.get("/", (req, res) => {
   res.send("Campus Utility Backend is running 🚀");
 })
+
+// Create Payment Order API
+app.post("/api/create-order", async (req, res) => {
+  try {
+
+    const options = {
+      amount: req.body.amount * 100,
+      currency: "INR",
+      receipt: "receipt_order"
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    res.json(order);
+
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
 
 async function isAdmin(userId) {
   try {
