@@ -15,6 +15,11 @@ const PORT = process.env.PORT || 5000
 app.use(cors())
 app.use(express.json())
 
+// Root route
+app.get("/", (req, res) => {
+  res.send("Campus Utility Backend is running 🚀");
+})
+
 async function isAdmin(userId) {
   try {
     const user = await User.findOne({ id: Number(userId) })
