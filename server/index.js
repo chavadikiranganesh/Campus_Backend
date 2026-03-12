@@ -186,7 +186,7 @@ app.post('/api/materials', async (req, res) => {
       ownerContact: payload.ownerContact || '',
       imageUrl: payload.imageUrl || '',
       description: payload.description || '',
-      postedByUserId: userId,
+      
     })
     await newItem.save()
     res.status(201).json(newItem)
