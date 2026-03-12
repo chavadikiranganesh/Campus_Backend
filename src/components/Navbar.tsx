@@ -124,6 +124,7 @@ export function Navbar() {
     { to: '/dashboard', label: 'Home' },
     { to: '/resources', label: 'Resources' },
     { to: '/marketplace', label: 'Marketplace' },
+    { to: '/cart', label: '🛒 Cart' },
     { to: '/accommodation', label: 'Accommodation' },
     { to: '/lost-found', label: 'Lost & Found' },
     { to: '/events', label: 'Events' },

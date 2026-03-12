@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE } from '../api'
+import { useCart } from '../context/CartContext'
 import { PaymentButton } from '../components/PaymentButton'
 
 const sampleItems = [
@@ -65,6 +66,7 @@ interface Material {
 }
 
 export function Marketplace() {
+  const { addToCart } = useCart()
   const [category, setCategory] = useState<(typeof categories)[number]>('All')
   const [type, setType] = useState<(typeof types)[number]>('All')
   const [query, setQuery] = useState('')
@@ -202,7 +204,7 @@ export function Marketplace() {
 
               {/* Payment Button for items sold */}
               {item.type === 'For Sale' && !isFreeItem && (
-                <div className="mt-4">
+                <div className="mt-4 space-y-2">
                   <PaymentButton
                     amount={amount}
                     description={`Purchase: ${item.title}`}
@@ -214,6 +216,22 @@ export function Marketplace() {
                       console.error(`Payment failed for ${item.title}:`, error)
                     }}
                   />
+                  <button
+                    onClick={() => {
+                      addToCart({
+                        id: item.id,
+                        title: item.title,
+                        price: amount,
+                        category: item.category,
+                        course: item.course,
+                        owner: item.owner,
+                      })
+                      alert(`${item.title} added to cart!`)
+                    }}
+                    className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition duration-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
+                  >
+                    Add to Cart
+                  </button>
                 </div>
               )}
             </article>

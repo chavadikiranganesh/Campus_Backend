@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import { API_BASE } from '../api'
 
 const categories = ['Book', 'Instrument', 'Calculator', 'Notes'] as const
@@ -25,6 +26,7 @@ type ViewMode = 'browse' | 'add'
 
 export function Resources() {
   const { user } = useAuth()
+  const { addToCart } = useCart()
   const [view, setView] = useState<ViewMode>('browse')
   const [items, setItems] = useState<Material[]>([])
   const [details, setDetails] = useState<Material | null>(null)
@@ -437,13 +439,28 @@ export function Resources() {
                   >
                     View details
                   </button>
-                  <button
-                    type="button"
-                    disabled
-                    className="rounded-full bg-slate-200 px-3 py-1 font-medium text-slate-700 disabled:cursor-not-allowed dark:bg-slate-700 dark:text-slate-200"
-                  >
-                    Payment (coming soon)
-                  </button>
+                  {item.type === 'For Sale' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const priceAmount = parseInt(item.price.replace(/[₹,]/g, '')) || 0
+                        if (priceAmount > 0) {
+                          addToCart({
+                            id: item.id,
+                            title: item.title,
+                            price: priceAmount,
+                            category: item.category,
+                            course: item.course,
+                            owner: item.owner,
+                          })
+                          alert(`${item.title} added to cart!`)
+                        }
+                      }}
+                      className="rounded-full bg-blue-600 px-3 py-1 font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    >
+                      Buy Now
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
