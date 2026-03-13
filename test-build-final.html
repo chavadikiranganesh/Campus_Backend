@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Final Build Test</title>
+</head>
+<body>
+    <h1>Final Build Test</h1>
+    <button onclick="testAPI()">Test API Connection</button>
+    <div id="result"></div>
+
+    <script>
+        // This should be the same as what's in the built frontend
+        const API_BASE = 'https://campus-backend-1-sm36.onrender.com';
+        
+        async function testAPI() {
+            try {
+                console.log('Testing API:', API_BASE);
+                const response = await fetch(`${API_BASE}/api/materials`);
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Data received:', data.length, 'items');
+                document.getElementById('result').innerHTML = `
+                    <h2>✅ API Working!</h2>
+                    <p>Status: ${response.status}</p>
+                    <p>Items: ${data.length}</p>
+                    <p>First item: ${data[0]?.title || 'None'}</p>
+                `;
+            } catch (error) {
+                console.error('API Error:', error);
+                document.getElementById('result').innerHTML = `
+                    <h2>❌ API Failed</h2>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
