@@ -446,17 +446,15 @@ export function Resources() {
                         type="button"
                         onClick={() => {
                           const priceAmount = parseInt(item.price.replace(/[₹,]/g, '')) || 0
-                          if (priceAmount > 0) {
-                            addToCart({
-                              id: item.id,
-                              title: item.title,
-                              price: priceAmount,
-                              category: item.category,
-                              course: item.course,
-                              owner: item.owner,
-                            })
-                            alert(`${item.title} added to cart!`)
-                          }
+                          addToCart({
+                            id: item.id,
+                            title: item.title,
+                            price: priceAmount,
+                            category: item.category,
+                            course: item.course,
+                            owner: item.owner,
+                          })
+                          alert(`${item.title} added to cart!`)
                         }}
                         className="rounded-full border border-blue-500 bg-blue-50 px-3 py-1 font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
                       >
@@ -557,18 +555,16 @@ export function Resources() {
                         type="button"
                         onClick={() => {
                           const priceAmount = parseInt(details.price.replace(/[₹,]/g, '')) || 0
-                          if (priceAmount > 0) {
-                            addToCart({
-                              id: details.id,
-                              title: details.title,
-                              price: priceAmount,
-                              category: details.category,
-                              course: details.course,
-                              owner: details.owner,
-                            })
-                            setDetails(null)
-                            alert(`${details.title} added to cart!`)
-                          }
+                          addToCart({
+                            id: details.id,
+                            title: details.title,
+                            price: priceAmount,
+                            category: details.category,
+                            course: details.course,
+                            owner: details.owner,
+                          })
+                          setDetails(null)
+                          alert(`${details.title} added to cart!`)
                         }}
                         className="rounded-full border border-blue-500 bg-blue-50 px-4 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
                       >
