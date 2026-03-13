@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { PaymentButton } from '../components/PaymentButton'
 import { API_BASE } from '../api'
 
 const categories = ['Book', 'Instrument', 'Calculator', 'Notes'] as const
@@ -431,7 +432,7 @@ export function Resources() {
                     {item.ownerContact && <p>Contact: {item.ownerContact}</p>}
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-end gap-2 text-[11px]">
+                <div className="mt-3 flex items-center justify-end gap-2 text-xs sm:text-sm flex-wrap">
                   <button
                     type="button"
                     onClick={() => setDetails(item)}
@@ -440,26 +441,28 @@ export function Resources() {
                     View details
                   </button>
                   {item.type === 'For Sale' && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const priceAmount = parseInt(item.price.replace(/[₹,]/g, '')) || 0
-                        if (priceAmount > 0) {
-                          addToCart({
-                            id: item.id,
-                            title: item.title,
-                            price: priceAmount,
-                            category: item.category,
-                            course: item.course,
-                            owner: item.owner,
-                          })
-                          alert(`${item.title} added to cart!`)
-                        }
-                      }}
-                      className="rounded-full bg-blue-600 px-3 py-1 font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-                    >
-                      Buy Now
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const priceAmount = parseInt(item.price.replace(/[₹,]/g, '')) || 0
+                          if (priceAmount > 0) {
+                            addToCart({
+                              id: item.id,
+                              title: item.title,
+                              price: priceAmount,
+                              category: item.category,
+                              course: item.course,
+                              owner: item.owner,
+                            })
+                            alert(`${item.title} added to cart!`)
+                          }
+                        }}
+                        className="rounded-full border border-blue-500 bg-blue-50 px-3 py-1 font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                      >
+                        Add to Cart
+                      </button>
+                    </>
                   )}
                 </div>
               </article>
@@ -547,13 +550,50 @@ export function Resources() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 border-t border-slate-200 p-4 dark:border-slate-700">
+                <div className="flex justify-end gap-2 border-t border-slate-200 p-4 dark:border-slate-700 flex-wrap">
+                  {details.type === 'For Sale' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const priceAmount = parseInt(details.price.replace(/[₹,]/g, '')) || 0
+                          if (priceAmount > 0) {
+                            addToCart({
+                              id: details.id,
+                              title: details.title,
+                              price: priceAmount,
+                              category: details.category,
+                              course: details.course,
+                              owner: details.owner,
+                            })
+                            setDetails(null)
+                            alert(`${details.title} added to cart!`)
+                          }
+                        }}
+                        className="rounded-full border border-blue-500 bg-blue-50 px-4 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
+                      >
+                        Add to Cart
+                      </button>
+                      <div className="w-auto">
+                        <PaymentButton
+                          amount={parseInt(details.price.replace(/[₹,]/g, '')) || 0}
+                          description={`Purchase: ${details.title}`}
+                          itemName={details.title}
+                          onSuccess={() => {
+                            setDetails(null)
+                            alert('Payment successful!')
+                          }}
+                          onFailure={() => {}}
+                        />
+                      </div>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => setDetails(null)}
                     className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    Done
+                    Close
                   </button>
                 </div>
               </div>
