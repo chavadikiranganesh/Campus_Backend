@@ -44,16 +44,21 @@ const cards = [
     desc: 'Find or create study groups by subject and course.',
     color: 'violet',
   },
+  {
+    path: '/medical-help',
+    icon: '🏥',
+    title: 'Medical Help',
+    desc: 'Blood donor directory - find and volunteer donors for emergencies.',
+    color: 'red',
+  },
 ]
 
 const colorClasses: Record<string, string> = {
-  blue: 'border-blue-200 bg-blue-50/80 hover:border-blue-400 hover:shadow-blue-100 dark:border-blue-900/50 dark:bg-blue-950/30 dark:hover:border-blue-700 dark:hover:shadow-blue-900/30',
-  emerald:
-    'border-emerald-200 bg-emerald-50/80 hover:border-emerald-400 hover:shadow-emerald-100 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:hover:border-emerald-700 dark:hover:shadow-emerald-900/30',
-  amber:
-    'border-amber-200 bg-amber-50/80 hover:border-amber-400 hover:shadow-amber-100 dark:border-amber-900/50 dark:bg-amber-950/30 dark:hover:border-amber-700 dark:hover:shadow-amber-900/30',
-  violet:
-    'border-violet-200 bg-violet-50/80 hover:border-violet-400 hover:shadow-violet-100 dark:border-violet-900/50 dark:bg-violet-950/30 dark:hover:border-violet-700 dark:hover:shadow-violet-900/30',
+  blue: 'from-blue-50 to-white border-blue-200',
+  emerald: 'from-emerald-50 to-white border-emerald-200',
+  amber: 'from-amber-50 to-white border-amber-200',
+  violet: 'from-violet-50 to-white border-violet-200',
+  red: 'from-red-50 to-white border-red-200',
 }
 
 const iconBg: Record<string, string> = {
@@ -61,6 +66,7 @@ const iconBg: Record<string, string> = {
   emerald: 'bg-emerald-600 shadow-emerald-400/50 dark:bg-emerald-500',
   amber: 'bg-amber-600 shadow-amber-400/50 dark:bg-amber-500',
   violet: 'bg-violet-600 shadow-violet-400/50 dark:bg-violet-500',
+  red: 'bg-red-600 shadow-red-400/50 dark:bg-red-500',
 }
 
 export function Dashboard() {
@@ -68,40 +74,70 @@ export function Dashboard() {
   const navigate = useNavigate()
 
   return (
-    <div className="flex flex-col gap-10 pb-8 pt-4">
-      {/* Hero */}
-      <section className="rounded-3xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 px-6 py-10 shadow-sm dark:border-slate-800 dark:from-slate-900 dark:to-slate-950 sm:px-10">
-        <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-          Welcome back
-        </p>
-        <h1 className="mt-2 max-w-2xl text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl lg:text-4xl">
-          Hi {user?.name || 'Student'}, what would you like to do today?
+    <div className="page-section fade-in">
+      {/* Welcome Section */}
+      <section className="mb-12">
+        <div className="mb-4">
+          <span className="inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/40 dark:text-blue-200">
+            Welcome back
+          </span>
+        </div>
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900 mb-4 dark:text-slate-50">
+          Hi {user?.name || 'Student'}, <span className="text-slate-600 dark:text-slate-400">what would you like to do today?</span>
         </h1>
-        <p className="mt-3 max-w-xl text-sm text-slate-600 dark:text-slate-400">
-          Resources, accommodation, lost &amp; found, events, study groups — one place.
+        <p className="text-lg text-slate-600 max-w-3xl dark:text-slate-400">
+          Resources, accommodation, lost &amp; found, events, study groups, and medical help — all in one place designed for your campus life.
         </p>
       </section>
 
-      {/* Quick links grid */}
+      {/* Quick Access Cards */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-slate-50">Quick access</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-50">Quick Access</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Everything you need, just a click away</p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <button
               key={card.path}
               type="button"
               onClick={() => navigate(card.path)}
-              className={`group flex flex-col items-start rounded-2xl border p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${colorClasses[card.color]}`}
+              className={`feature-card group text-left bg-gradient-to-br ${colorClasses[card.color]}`}
             >
-              <div
-                className={`mb-3 flex h-12 w-12 items-center justify-center rounded-xl text-2xl text-white shadow-lg ${iconBg[card.color]}`}
-              >
-                {card.icon}
+              <div className="flex items-start justify-between mb-4">
+                <div
+                  className={`flex h-14 w-14 items-center justify-center rounded-2xl text-3xl text-white shadow-lg ${iconBg[card.color]}`}
+                >
+                  {card.icon}
+                </div>
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <span className="inline-flex items-center rounded-full bg-white/80 px-3 py-1 text-xs font-medium text-slate-900 dark:text-slate-100">
+                    View →
+                  </span>
+                </div>
               </div>
-              <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">{card.title}</h3>
-              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">{card.desc}</p>
+              <h3 className="text-xl font-semibold text-slate-900 mb-2 dark:text-slate-50">{card.title}</h3>
+              <p className="text-sm text-slate-600 leading-relaxed dark:text-slate-400">{card.desc}</p>
             </button>
           ))}
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="mt-16">
+        <div className="grid gap-6 md:grid-cols-3">
+          <div className="feature-card text-center">
+            <div className="text-3xl font-bold text-blue-600 mb-2 dark:text-blue-400">7+</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Campus Services</p>
+          </div>
+          <div className="feature-card text-center">
+            <div className="text-3xl font-bold text-emerald-600 mb-2 dark:text-emerald-400">24/7</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Available Support</p>
+          </div>
+          <div className="feature-card text-center">
+            <div className="text-3xl font-bold text-violet-600 mb-2 dark:text-violet-400">100%</div>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Student Focused</p>
+          </div>
         </div>
       </section>
     </div>

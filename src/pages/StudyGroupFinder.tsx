@@ -12,6 +12,7 @@ interface StudyGroup {
   contact: string
   description: string
   members?: number[]
+  postedByUserId?: number
 }
 
 export function StudyGroupFinder() {
@@ -30,6 +31,7 @@ export function StudyGroupFinder() {
   const [description, setDescription] = useState('')
   const [contact, setContact] = useState(user?.email ?? '')
   const [joiningId, setJoiningId] = useState<number | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<StudyGroup | null>(null)
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -100,6 +102,33 @@ export function StudyGroupFinder() {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleDelete = async (group: StudyGroup) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/studygroups/${group.id}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': String(user.id) },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to delete study group')
+      }
+
+      setGroups((prev) => prev.filter((g) => g.id !== group.id))
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert((err as Error).message)
+    }
+  }
+
+  const canDelete = (group: StudyGroup) => {
+    if (!user) return false
+    return user.role === 'admin' || group.postedByUserId === user.id
   }
 
   const filtered = groups.filter((g) => {
@@ -279,11 +308,68 @@ export function StudyGroupFinder() {
               )}
             </div>
             <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Contact: {g.contact}</p>
+            {canDelete(g) && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(g)}
+                  className="rounded-full bg-rose-500 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </article>
         ))}
       </section>
       {!loading && filtered.length === 0 && (
         <p className="text-sm text-slate-500 dark:text-slate-400">No groups match. Create one to get started.</p>
+      )}
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null)
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
+                  <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Study Group</h3>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Are you sure you want to delete "{deleteConfirm.subject}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(deleteConfirm)}
+                  className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

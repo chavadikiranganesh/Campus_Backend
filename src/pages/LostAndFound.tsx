@@ -11,6 +11,8 @@ interface LostFoundItem {
   location: string
   contact: string
   createdAt: string
+  postedByUserId?: number
+  imageUrl?: string
 }
 
 export function LostAndFound() {
@@ -27,6 +29,8 @@ export function LostAndFound() {
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
   const [contact, setContact] = useState(user?.email ?? '')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<LostFoundItem | null>(null)
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -51,6 +55,11 @@ export function LostAndFound() {
     setFormError(null)
     setSaving(true)
     try {
+      let imageUrl = ''
+      if (imageFile) {
+        imageUrl = URL.createObjectURL(imageFile)
+      }
+
       const res = await fetch(`${API_BASE}/api/lost-found`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,6 +69,7 @@ export function LostAndFound() {
           description,
           location,
           contact: contact || user?.email,
+          imageUrl,
           userId: user?.id,
         }),
       })
@@ -70,12 +80,40 @@ export function LostAndFound() {
       setDescription('')
       setLocation('')
       setContact(user?.email ?? '')
+      setImageFile(null)
       setShowForm(false)
     } catch {
       setFormError('Could not post. Try again.')
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleDelete = async (item: LostFoundItem) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/lostfound/${item.id}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': String(user.id) },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to delete item')
+      }
+
+      setItems((prev) => prev.filter((i) => i.id !== item.id))
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert((err as Error).message)
+    }
+  }
+
+  const canDelete = (item: LostFoundItem) => {
+    if (!user) return false
+    return user.role === 'admin' || item.postedByUserId === user.id
   }
 
   const filtered = items.filter((item) => {
@@ -190,6 +228,20 @@ export function LostAndFound() {
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
             </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Image (optional)</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:file:bg-blue-900/40 dark:file:text-blue-200"
+              />
+              {imageFile && (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Selected: {imageFile.name}
+                </p>
+              )}
+            </div>
             {formError && <p className="text-xs text-rose-500 sm:col-span-2">{formError}</p>}
             <div className="flex gap-2 sm:col-span-2">
               <button
@@ -222,6 +274,13 @@ export function LostAndFound() {
                 : 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20'
             }`}
           >
+            {item.imageUrl && (
+              <img
+                src={item.imageUrl}
+                alt={item.title}
+                className="mb-2 h-32 w-full rounded-lg object-cover"
+              />
+            )}
             <span
               className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                 item.type === 'lost'
@@ -237,11 +296,68 @@ export function LostAndFound() {
               📍 {item.location} · {item.createdAt}
             </p>
             <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">Contact: {item.contact}</p>
+            {canDelete(item) && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(item)}
+                  className="rounded-full bg-rose-500 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </article>
         ))}
       </section>
       {!loading && filtered.length === 0 && (
         <p className="text-sm text-slate-500 dark:text-slate-400">No items match. Try changing filters or add a new report.</p>
+      )}
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null)
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
+                  <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Item</h3>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(deleteConfirm)}
+                  className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

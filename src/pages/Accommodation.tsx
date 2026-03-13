@@ -42,6 +42,7 @@ interface AccommodationItem {
   facilities: string[]
   contact: string
   photos?: string[]
+  postedByUserId?: number
 }
 
 export function Accommodation() {
@@ -58,6 +59,8 @@ export function Accommodation() {
   const [facilities, setFacilities] = useState('')
   const [contact, setContact] = useState('')
   const [photoUrls, setPhotoUrls] = useState<string[]>(['', ''])
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
+  const [deleteConfirm, setDeleteConfirm] = useState<AccommodationItem | null>(null)
 
   useEffect(() => {
     const fetchAccommodations = async () => {
@@ -87,6 +90,16 @@ export function Accommodation() {
     setFormError(null)
     setSaving(true)
     try {
+      let photos: string[] = []
+      
+      // Handle file uploads
+      if (photoFiles.length > 0) {
+        photos = photoFiles.map(file => URL.createObjectURL(file))
+      } else {
+        // Fallback to URLs if provided
+        photos = photoUrls.map((p) => p.trim()).filter(Boolean)
+      }
+
       const payload = {
         name,
         distance,
@@ -97,7 +110,7 @@ export function Accommodation() {
           .map((f) => f.trim())
           .filter(Boolean),
         contact,
-        photos: photoUrls.map((p) => p.trim()).filter(Boolean),
+        photos,
       }
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
@@ -119,11 +132,39 @@ export function Accommodation() {
       setFacilities('')
       setContact('')
       setPhotoUrls(['', ''])
+      setPhotoFiles([])
     } catch (err) {
       setFormError((err as Error).message)
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleDelete = async (accommodation: AccommodationItem) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/accommodations/${accommodation.id}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': String(user.id) },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to delete accommodation')
+      }
+
+      setPlaces((prev) => prev.filter((place) => place.id !== accommodation.id))
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert((err as Error).message)
+    }
+  }
+
+  const canDelete = (_accommodation: AccommodationItem) => {
+    if (!user) return false
+    return user.role === 'admin'
   }
 
   return (
@@ -168,6 +209,17 @@ export function Accommodation() {
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-500">Contact: {place.contact}</p>
             </div>
+            {canDelete(place) && (
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(place)}
+                  className="rounded-full bg-rose-500 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
           </article>
         ))}
       </section>
@@ -256,34 +308,57 @@ export function Accommodation() {
             </div>
             <div className="md:col-span-2">
               <div className="mb-1 flex items-center justify-between">
-                <label className="block text-slate-700 dark:text-slate-300">Photos (add multiple URLs)</label>
+                <label className="block text-slate-700 dark:text-slate-300">Photos</label>
                 <button
                   type="button"
-                  onClick={() => setPhotoUrls((prev) => [...prev, ''])}
+                  onClick={() => setPhotoFiles((prev) => [...prev, ...Array(3).fill(null)])}
                   className="text-xs text-blue-600 dark:text-blue-400"
                 >
-                  + Add photo
+                  + Add photos
                 </button>
               </div>
-              {photoUrls.map((url, i) => (
-                <div key={i} className="mb-2 flex gap-2">
+              
+              {/* File Upload Section */}
+              <div className="mb-3 space-y-2">
+                <div className="flex items-center gap-2">
                   <input
-                    type="url"
-                    value={url}
-                    onChange={(e) => setPhotoUrls((prev) => prev.map((p, j) => (j === i ? e.target.value : p)))}
-                    className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                    placeholder={`Photo ${i + 1} URL`}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))}
+                    className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:file:bg-blue-900/40 dark:file:text-blue-200"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setPhotoUrls((prev) => prev.filter((_, j) => j !== i))}
-                    disabled={photoUrls.length <= 1}
-                    className="shrink-0 rounded-lg border border-slate-200 px-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
-                  >
-                    Remove
-                  </button>
                 </div>
-              ))}
+                {photoFiles.length > 0 && (
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Selected: {photoFiles.map(f => f.name).join(', ')}
+                  </p>
+                )}
+              </div>
+              
+              {/* Fallback URL inputs */}
+              <div className="space-y-2">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Or enter image URLs:</p>
+                {photoUrls.map((url, i) => (
+                  <div key={i} className="mb-2 flex gap-2">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => setPhotoUrls((prev) => prev.map((p, j) => (j === i ? e.target.value : p)))}
+                      className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder={`Photo ${i + 1} URL`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPhotoUrls((prev) => prev.filter((_, j) => j !== i))}
+                      disabled={photoUrls.length <= 1}
+                      className="shrink-0 rounded-lg border border-slate-200 px-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
             {formError && <p className="text-xs text-rose-500 md:col-span-2">{formError}</p>}
             <div className="md:col-span-2 flex justify-end">
@@ -297,6 +372,52 @@ export function Accommodation() {
             </div>
           </form>
         </section>
+      )}
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null)
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
+                  <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Accommodation</h3>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Are you sure you want to delete "{deleteConfirm.name}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(deleteConfirm)}
+                  className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

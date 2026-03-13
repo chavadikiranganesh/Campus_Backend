@@ -20,11 +20,13 @@ export function Navbar() {
   const { resolved, setTheme } = useTheme()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [servicesOpen, setServicesOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const servicesRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(0)
 
   useEffect(() => {
@@ -73,8 +75,8 @@ export function Navbar() {
 
   const [notifications, setNotifications] = useState<{ id: number; title: string; body: string; at: string }[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
-  const notifRef = useRef<HTMLDivElement>(null)
   const [profileOpen, setProfileOpen] = useState(false)
+  const notifRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -111,6 +113,14 @@ export function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (servicesRef.current && !servicesRef.current.contains(e.target as Node)) setServicesOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   const initials =
     user?.name
       ?.split(' ')
@@ -122,30 +132,29 @@ export function Navbar() {
 
   const navLinks = [
     { to: '/dashboard', label: 'Home' },
+  ]
+
+  const servicesLinks = [
     { to: '/resources', label: 'Resources' },
     { to: '/marketplace', label: 'Marketplace' },
-    { to: '/cart', label: '🛒 Cart' },
     { to: '/accommodation', label: 'Accommodation' },
     { to: '/lost-found', label: 'Lost & Found' },
     { to: '/events', label: 'Events' },
     { to: '/study-groups', label: 'Study Groups' },
-    { to: '/profile', label: 'Profile' },
-    { to: '/about', label: 'About' },
+    { to: '/medical-help', label: 'Medical Help' },
   ]
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur shadow-sm dark:border-slate-800 dark:bg-slate-900/95">
+      <div className="container flex items-center justify-between gap-4 py-4">
         <div className="flex min-w-0 flex-shrink-0 items-center gap-3">
           <NavLink to="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/40 dark:bg-blue-500">
-              <span className="text-lg font-semibold">CU</span>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/40 dark:bg-blue-500">
+              <span className="text-lg font-bold">CU</span>
             </div>
             <div className="hidden sm:block">
-              <div className="text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50">
-                Campus Utility
-              </div>
-              <div className="hidden text-xs text-slate-500 dark:text-slate-400 lg:block">Smart reuse &amp; student support</div>
+              <div className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">Campus Utility</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Smart campus solutions</div>
             </div>
           </NavLink>
         </div>
@@ -163,10 +172,10 @@ export function Navbar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search materials, events, PGs..."
-            className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-10 pr-16 text-sm outline-none placeholder:text-slate-400 focus:border-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:placeholder:text-slate-500"
+            className="search-bar w-full pl-12"
           />
           {searching && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">Searching…</span>
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400 dark:text-slate-500">Searching…</span>
           )}
           {searchOpen && searchResults && (
             <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
@@ -285,12 +294,12 @@ export function Navbar() {
           )}
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex items-center gap-3">
           {/* Dark mode toggle */}
           <button
             type="button"
             onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-all duration-200"
             title={resolved === 'dark' ? 'Switch to light' : 'Switch to dark'}
           >
             {resolved === 'dark' ? '☀️' : '🌙'}
@@ -302,19 +311,19 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setNotifOpen((o) => !o)}
-                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-all duration-200"
                 aria-label="Notifications"
               >
                 🔔
                 {notifications.length > 0 && (
-                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] text-white">
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                     {notifications.length > 9 ? '9+' : notifications.length}
                   </span>
                 )}
               </button>
               {notifOpen && (
-                <div className="absolute right-0 top-full z-50 mt-1 w-72 rounded-xl border border-slate-200 bg-white py-2 shadow-xl dark:border-slate-700 dark:bg-slate-800">
-                  <p className="px-3 py-1 text-xs font-medium text-slate-500 dark:text-slate-400">Notifications</p>
+                <div className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                  <p className="px-3 py-2 text-xs font-medium text-slate-500 dark:text-slate-400">Notifications</p>
                   {notifications.length === 0 ? (
                     <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">No new notifications</p>
                   ) : (
@@ -338,7 +347,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => setProfileOpen((o) => !o)}
-                className="inline-flex h-9 items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                className="profile-button"
                 aria-label="User menu"
               >
                 <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-blue-600 text-[11px] font-semibold text-white dark:bg-blue-500">
@@ -363,9 +372,19 @@ export function Navbar() {
                         navigate('/profile')
                         setProfileOpen(false)
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                      className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                     >
                       Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('/settings')
+                        setProfileOpen(false)
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      Settings
                     </button>
                     {user.role === 'admin' && (
                       <button
@@ -374,7 +393,7 @@ export function Navbar() {
                           navigate('/admin')
                           setProfileOpen(false)
                         }}
-                        className="w-full px-3 py-2 text-left text-sm text-amber-800 hover:bg-amber-50 dark:text-amber-200 dark:hover:bg-slate-700"
+                        className="w-full px-3 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 dark:text-amber-200 dark:hover:bg-slate-700"
                       >
                         Admin
                       </button>
@@ -385,7 +404,7 @@ export function Navbar() {
                         logout()
                         setProfileOpen(false)
                       }}
-                      className="w-full px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50 dark:text-rose-200 dark:hover:bg-slate-700"
+                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
                     >
                       Logout
                     </button>
@@ -395,57 +414,73 @@ export function Navbar() {
             </div>
           )}
 
-          {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 lg:flex">
-            {navLinks.slice(0, 6).map(({ to, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `${linkBase} ${
-                    isActive
-                      ? 'bg-blue-600 text-white dark:bg-blue-500'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
-                  }`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-
-          {user?.role === 'admin' && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `${linkBase} hidden lg:inline-flex ${
-                  isActive ? 'bg-amber-600 text-white dark:bg-amber-500' : 'text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-slate-800'
-                }`
-              }
-            >
-              Admin
-            </NavLink>
-          )}
-          {user && (
-            <button
-              type="button"
-              onClick={logout}
-              className="hidden rounded-full border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800 lg:inline-flex"
-            >
-              Logout
-            </button>
-          )}
-
           {/* Mobile menu button */}
           <button
             type="button"
             onClick={() => setMobileOpen((o) => !o)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 lg:hidden transition-all duration-200"
             aria-label="Toggle menu"
           >
             {mobileOpen ? '✕' : '☰'}
           </button>
         </div>
+
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-1 lg:flex">
+          {navLinks.map(({ to, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `${linkBase} ${
+                  isActive
+                    ? 'bg-blue-600 text-white dark:bg-blue-500'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                }`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+          
+          {/* Services Dropdown */}
+          <div className="relative" ref={servicesRef}>
+            <button
+              type="button"
+              onClick={() => setServicesOpen((o) => !o)}
+              className={`${linkBase} flex items-center gap-1 ${
+                servicesOpen
+                  ? 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-100'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+              }`}
+            >
+              Services
+              <svg className="h-3 w-3 transition-transform duration-200" style={{ transform: servicesOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {servicesOpen && (
+              <div className="absolute left-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                <div className="py-1">
+                  {servicesLinks.map(({ to, label }) => (
+                    <button
+                      key={to}
+                      type="button"
+                      onClick={() => {
+                        navigate(to)
+                        setServicesOpen(false)
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </nav>
       </div>
 
       {/* Mobile menu */}
@@ -476,6 +511,22 @@ export function Navbar() {
                 </NavLink>
               )}
               {navLinks.map(({ to, label }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `rounded-lg px-4 py-3 text-sm font-medium ${
+                      isActive
+                        ? 'bg-blue-600 text-white dark:bg-blue-500'
+                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
+                    }`
+                  }
+                >
+                  {label}
+                </NavLink>
+              ))}
+              {servicesLinks.map(({ to, label }) => (
                 <NavLink
                   key={to}
                   to={to}

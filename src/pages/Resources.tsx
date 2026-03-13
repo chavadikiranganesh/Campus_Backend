@@ -1,8 +1,6 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useCart } from '../context/CartContext'
-import { PaymentButton } from '../components/PaymentButton'
 import { API_BASE } from '../api'
 
 const categories = ['Book', 'Instrument', 'Calculator', 'Notes'] as const
@@ -21,13 +19,13 @@ interface Material {
   ownerContact?: string
   imageUrl?: string
   description?: string
+  postedByUserId?: number
 }
 
 type ViewMode = 'browse' | 'add'
 
 export function Resources() {
   const { user } = useAuth()
-  const { addToCart } = useCart()
   const [view, setView] = useState<ViewMode>('browse')
   const [items, setItems] = useState<Material[]>([])
   const [details, setDetails] = useState<Material | null>(null)
@@ -46,10 +44,11 @@ export function Resources() {
   const [condition, setCondition] = useState('')
   const [type, setType] = useState<(typeof types)[number]>('For Sale')
   const [price, setPrice] = useState('')
-  const [imageUrl, setImageUrl] = useState('')
   const [description, setDescription] = useState('')
   const [ownerName, setOwnerName] = useState(user?.name ?? '')
   const [ownerContact, setOwnerContact] = useState('')
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<Material | null>(null)
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -79,6 +78,12 @@ export function Resources() {
     setSaving(true)
 
     try {
+      let imageUrl = ''
+      if (imageFile) {
+        // For now, create a local object URL (in production, upload to server)
+        imageUrl = URL.createObjectURL(imageFile)
+      }
+
       const payload = {
         title,
         category,
@@ -113,16 +118,43 @@ export function Resources() {
       setCondition('')
       setType('For Sale')
       setPrice('')
-      setImageUrl('')
       setDescription('')
       setOwnerName(user?.name ?? '')
       setOwnerContact('')
+      setImageFile(null)
       setView('browse')
     } catch (err) {
       setFormError((err as Error).message)
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleDelete = async (material: Material) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/materials/${material.id}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': String(user.id) },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to delete resource')
+      }
+
+      setItems((prev) => prev.filter((item) => item.id !== material.id))
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert((err as Error).message)
+    }
+  }
+
+  const canDelete = (material: Material) => {
+    if (!user) return false
+    return user.role === 'admin' || material.postedByUserId === user.id
   }
 
   const filteredItems = items.filter((item) => {
@@ -269,14 +301,18 @@ export function Resources() {
 
             <div className="space-y-2">
               <div>
-                <label className="mb-1 block text-slate-700 dark:text-slate-300">Image URL</label>
+                <label className="mb-1 block text-slate-700 dark:text-slate-300">Image</label>
                 <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
-                  placeholder="Paste a link to the item photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:file:bg-blue-900/40 dark:file:text-blue-200"
                 />
+                {imageFile && (
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Selected: {imageFile.name}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="mb-1 block text-slate-700 dark:text-slate-300">Short description</label>
@@ -432,7 +468,7 @@ export function Resources() {
                     {item.ownerContact && <p>Contact: {item.ownerContact}</p>}
                   </div>
                 </div>
-                <div className="mt-3 flex items-center justify-end gap-2 text-xs sm:text-sm flex-wrap">
+                <div className="mt-3 flex items-center justify-end gap-2 text-[11px]">
                   <button
                     type="button"
                     onClick={() => setDetails(item)}
@@ -440,27 +476,14 @@ export function Resources() {
                   >
                     View details
                   </button>
-                  {item.type === 'For Sale' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const priceAmount = parseInt(item.price.replace(/[₹,]/g, '')) || 0
-                          addToCart({
-                            id: item.id,
-                            title: item.title,
-                            price: priceAmount,
-                            category: item.category,
-                            course: item.course,
-                            owner: item.owner,
-                          })
-                          alert(`${item.title} added to cart!`)
-                        }}
-                        className="rounded-full border border-blue-500 bg-blue-50 px-3 py-1 font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
-                      >
-                        Add to Cart
-                      </button>
-                    </>
+                  {canDelete(item) && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm(item)}
+                      className="rounded-full bg-rose-500 px-3 py-1 font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
+                    >
+                      Delete
+                    </button>
                   )}
                 </div>
               </article>
@@ -548,49 +571,60 @@ export function Resources() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 border-t border-slate-200 p-4 dark:border-slate-700 flex-wrap">
-                  {details.type === 'For Sale' && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const priceAmount = parseInt(details.price.replace(/[₹,]/g, '')) || 0
-                          addToCart({
-                            id: details.id,
-                            title: details.title,
-                            price: priceAmount,
-                            category: details.category,
-                            course: details.course,
-                            owner: details.owner,
-                          })
-                          setDetails(null)
-                          alert(`${details.title} added to cart!`)
-                        }}
-                        className="rounded-full border border-blue-500 bg-blue-50 px-4 py-2 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/40"
-                      >
-                        Add to Cart
-                      </button>
-                      <div className="w-auto">
-                        <PaymentButton
-                          amount={parseInt(details.price.replace(/[₹,]/g, '')) || 0}
-                          description={`Purchase: ${details.title}`}
-                          itemName={details.title}
-                          onSuccess={() => {
-                            setDetails(null)
-                            alert('Payment successful!')
-                          }}
-                          onFailure={() => {}}
-                        />
-                      </div>
-                    </>
-                  )}
+                <div className="flex justify-end gap-2 border-t border-slate-200 p-4 dark:border-slate-700">
                   <button
                     type="button"
                     onClick={() => setDetails(null)}
                     className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    Close
+                    Done
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {deleteConfirm && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+              role="dialog"
+              aria-modal="true"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setDeleteConfirm(null)
+              }}
+            >
+              <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+                <div className="p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
+                      <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Resource</h3>
+                      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                        Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirm(null)}
+                      className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(deleteConfirm)}
+                      className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

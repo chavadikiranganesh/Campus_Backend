@@ -27,6 +27,7 @@ export function EventCalendar() {
   const [venue, setVenue] = useState('')
   const [description, setDescription] = useState('')
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<EventItem | null>(null)
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -71,18 +72,18 @@ export function EventCalendar() {
     }
   }
 
-  const deleteEvent = async (id: number) => {
+  const deleteEvent = async (event: EventItem) => {
     if (user?.role !== 'admin') return
-    if (!confirm('Delete this event?')) return
-    setDeletingId(id)
+    setDeletingId(event.id)
     try {
-      const res = await fetch(`${API_BASE}/api/events/${id}`, {
+      const res = await fetch(`${API_BASE}/api/events/${event.id}`, {
         method: 'DELETE',
         headers: { 'X-User-Id': String(user.id) },
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.message || 'Failed to delete event')
-      setEvents((prev) => prev.filter((e) => e.id !== id))
+      setEvents((prev) => prev.filter((e) => e.id !== event.id))
+      setDeleteConfirm(null)
     } catch (e) {
       alert((e as Error).message)
     } finally {
@@ -272,11 +273,11 @@ export function EventCalendar() {
                   {user?.role === 'admin' && (
                     <button
                       type="button"
-                      onClick={() => deleteEvent(ev.id)}
+                      onClick={() => setDeleteConfirm(ev)}
                       disabled={deletingId === ev.id}
                       className="ml-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200 dark:hover:bg-rose-950/50"
                     >
-                      {deletingId === ev.id ? 'Deleting…' : 'Delete'}
+                      Delete
                     </button>
                   )}
                 </div>
@@ -287,6 +288,52 @@ export function EventCalendar() {
           <p className="text-sm text-slate-500 dark:text-slate-400">No events yet. Check back later.</p>
         )}
       </section>
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null)
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
+                  <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Event</h3>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteEvent(deleteConfirm)}
+                  className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                >
+                  {deletingId === deleteConfirm.id ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

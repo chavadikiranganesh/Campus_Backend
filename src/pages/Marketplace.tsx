@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { API_BASE } from '../api'
-import { useCart } from '../context/CartContext'
-import { PaymentButton } from '../components/PaymentButton'
 
 const sampleItems = [
   {
@@ -66,7 +64,6 @@ interface Material {
 }
 
 export function Marketplace() {
-  const { addToCart } = useCart()
   const [category, setCategory] = useState<(typeof categories)[number]>('All')
   const [type, setType] = useState<(typeof types)[number]>('All')
   const [query, setQuery] = useState('')
@@ -165,78 +162,38 @@ export function Marketplace() {
       )}
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredItems.map((item) => {
-          // Extract amount from price string (e.g., "₹350" -> 350)
-          const amountStr = item.price.replace(/[₹,]/g, '').trim()
-          const amount = parseInt(amountStr) || 0
-          const isFreeItem = item.price === 'Free' || amount === 0
-
-          return (
-            <article
-              key={item.id}
-              className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
-            >
-              <div className="space-y-1">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
-                  {item.title}
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {item.course} · Semester {item.semester}
-                </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {item.category} · {item.condition}
-                </p>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
-                <span
-                  className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${
-                    item.type === 'Donation'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
-                  }`}
-                >
-                  {item.type === 'Donation' ? 'Donation' : `Sale · ${item.price}`}
-                </span>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                  {item.owner}
-                </span>
-              </div>
-
-              {/* Payment Button for items sold */}
-              {item.type === 'For Sale' && !isFreeItem && (
-                <div className="mt-4 space-y-2">
-                  <PaymentButton
-                    amount={amount}
-                    description={`Purchase: ${item.title}`}
-                    itemName={item.title}
-                    onSuccess={(paymentId) => {
-                      console.log(`Payment successful for ${item.title}:`, paymentId)
-                    }}
-                    onFailure={(error) => {
-                      console.error(`Payment failed for ${item.title}:`, error)
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      addToCart({
-                        id: item.id,
-                        title: item.title,
-                        price: amount,
-                        category: item.category,
-                        course: item.course,
-                        owner: item.owner,
-                      })
-                      alert(`${item.title} added to cart!`)
-                    }}
-                    className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold py-2 px-4 rounded-lg transition duration-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
-                  >
-                    Add to Cart
-                  </button>
-                </div>
-              )}
-            </article>
-          )
-        })}
+        {filteredItems.map((item) => (
+          <article
+            key={item.id}
+            className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
+          >
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                {item.title}
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {item.course} · Semester {item.semester}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                {item.category} · {item.condition}
+              </p>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${
+                  item.type === 'Donation'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
+                }`}
+              >
+                {item.type === 'Donation' ? 'Donation' : `Sale · ${item.price}`}
+              </span>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                {item.owner}
+              </span>
+            </div>
+          </article>
+        ))}
 
         {filteredItems.length === 0 && !loading && (
           <p className="col-span-full text-sm text-slate-500 dark:text-slate-400">
