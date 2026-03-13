@@ -47,17 +47,17 @@ async function seedDatabase() {
       },
       {
         id: 2,
-        title: "Scientific Calculator Casio FX-991EX",
-        category: "Calculator",
-        course: "General",
-        semester: "All",
-        condition: "Excellent",
+        title: "BOTTLE",
+        category: "Book",
+        course: "CSE",
+        semester: "4",
+        condition: "GOOD",
         type: "For Sale",
-        price: "₹800",
-        owner: "Jane Smith",
+        price: "₹0",
+        owner: "HHHHHHHH",
         ownerContact: "9876543211",
         imageUrl: "",
-        description: "Advanced scientific calculator, barely used. Comes with original box and manual."
+        description: "Refillable water bottle, eco-friendly option."
       },
       {
         id: 3,
@@ -72,6 +72,34 @@ async function seedDatabase() {
         ownerContact: "9876543212",
         imageUrl: "",
         description: "Comprehensive handwritten notes for Data Structures. Covers all topics with diagrams."
+      },
+      {
+        id: 4,
+        title: "Test Engineering Mathematics",
+        category: "Book",
+        course: "CSE",
+        semester: "2",
+        condition: "Like New",
+        type: "For Sale",
+        price: "₹350",
+        owner: "Test User",
+        ownerContact: "test@example.com",
+        imageUrl: "",
+        description: "Test mathematics textbook for second year students."
+      },
+      {
+        id: 5,
+        title: "Test Lost Phone",
+        category: "Electronics",
+        course: "General",
+        semester: "All",
+        condition: "Working",
+        type: "lost",
+        price: "N/A",
+        owner: "Test Student",
+        ownerContact: "9998887777",
+        imageUrl: "",
+        description: "Test lost item entry for debugging purposes."
       }
     ]
 
@@ -131,9 +159,17 @@ async function seedDatabase() {
         id: 3,
         type: "lost",
         title: "Lost Engineering Notebook",
-        description: "Lost blue engineering notebook with circuits notes. Contains important assignment work.",
-        location: "Lab Building",
+        description: "Lost engineering notebook with important formulas. Last seen in Study Room 2.",
+        location: "Study Room 2",
         contact: "9876543218"
+      },
+      {
+        id: 4,
+        type: "found",
+        title: "Test Found Wallet",
+        description: "Test found item entry for debugging purposes.",
+        location: "Test Location",
+        contact: "test@example.com"
       }
     ]
 
