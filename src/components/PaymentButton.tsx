@@ -52,8 +52,43 @@ export const PaymentButton: React.FC<PaymentButtonProps> = ({
         name: 'Campus Utility',
         description: description,
         order_id: order.id,
-        handler: (response: any) => {
+        handler: async (response: any) => {
           console.log('Payment successful:', response)
+          
+          // Step 3: Save payment to database
+          try {
+            // Get user info from localStorage
+            const userStr = localStorage.getItem('campus-utility-user')
+            const user = userStr ? JSON.parse(userStr) : null
+            
+            // Get cart items
+            const cartStr = localStorage.getItem('campus-cart')
+            const cartItems = cartStr ? JSON.parse(cartStr) : []
+            
+            const paymentResponse = await fetch(`${API_BASE}/api/payments`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                amount: amount,
+                status: 'paid',
+                userId: user?._id || null,
+                items: cartItems,
+                customerEmail: userEmail,
+                customerName: userName,
+              }),
+            })
+
+            if (paymentResponse.ok) {
+              console.log('Payment saved to database')
+            }
+          } catch (saveError) {
+            console.error('Failed to save payment:', saveError)
+          }
+          
           if (onSuccess) {
             onSuccess(response.razorpay_payment_id)
           }

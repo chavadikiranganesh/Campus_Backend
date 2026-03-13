@@ -51,7 +51,7 @@ export function MedicalHelp() {
       if (search) params.append('search', search)
       if (bloodGroupFilter !== 'All') params.append('bloodGroup', bloodGroupFilter)
       
-      const response = await fetch(`${API_BASE}/api/blood-donors?${params}`)
+      const response = await fetch(`${API_BASE}/api/medical-help?${params}`)
       if (!response.ok) {
         throw new Error('Failed to load donors from backend')
       }
@@ -80,7 +80,7 @@ export function MedicalHelp() {
         lastDonationDate: lastDonationDate || null,
       }
 
-      const response = await fetch(`${API_BASE}/api/blood-donors`, {
+      const response = await fetch(`${API_BASE}/api/medical-help`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export function MedicalHelp() {
     if (!user) return
 
     try {
-      const response = await fetch(`${API_BASE}/api/blood-donors/${donor.id}`, {
+      const response = await fetch(`${API_BASE}/api/medical-help/${donor.id}`, {
         method: 'DELETE',
         headers: { 'X-User-Id': String(user.id) },
       })

@@ -91,6 +91,44 @@ const notificationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 })
 
+// Medical Help/Blood Donors Schema
+const medicalHelpSchema = new mongoose.Schema({
+  id: { type: Number, unique: true, sparse: true },
+  name: { type: String, required: true },
+  bloodGroup: { type: String, required: true },
+  contact: { type: String, required: true },
+  location: { type: String, required: true },
+  availability: { type: String, required: true },
+  lastDonated: { type: String },
+  emergencyContact: { type: String },
+  conditions: [String],
+  createdAt: { type: Date, default: Date.now },
+})
+
+// Payment Schema
+const paymentSchema = new mongoose.Schema({
+  id: { type: Number, unique: true, sparse: true },
+  paymentId: { type: String, required: true, unique: true },
+  orderId: { type: String, required: true },
+  amount: { type: Number, required: true },
+  currency: { type: String, default: 'INR' },
+  status: { type: String, required: true, enum: ['created', 'paid', 'failed', 'refunded'] },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  items: [{
+    id: Number,
+    title: String,
+    price: Number,
+    quantity: Number,
+    category: String,
+    course: String,
+    owner: String
+  }],
+  customerEmail: String,
+  customerName: String,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+})
+
 // Create models
 const User = mongoose.model('User', userSchema)
 const StudyMaterial = mongoose.model('StudyMaterial', studyMaterialSchema)
@@ -100,6 +138,8 @@ const Event = mongoose.model('Event', eventSchema)
 const StudyGroup = mongoose.model('StudyGroup', studyGroupSchema)
 const LoginLog = mongoose.model('LoginLog', loginLogSchema)
 const Notification = mongoose.model('Notification', notificationSchema)
+const MedicalHelp = mongoose.model('MedicalHelp', medicalHelpSchema)
+const Payment = mongoose.model('Payment', paymentSchema)
 
 module.exports = {
   User,
@@ -110,4 +150,6 @@ module.exports = {
   StudyGroup,
   LoginLog,
   Notification,
+  MedicalHelp,
+  Payment,
 }

@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const express = require('express')
 const cors = require('cors')
 const Razorpay = require("razorpay")
-const { User, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification } = require('./models')
+const { User, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
 const razorpay = new Razorpay({
@@ -596,6 +596,117 @@ app.delete('/api/accommodations/:id', async (req, res) => {
     res.json(place)
   } catch (error) {
     res.status(500).json({ message: 'Failed to delete accommodation' })
+  }
+})
+
+// Medical Help / Blood Donors
+app.get('/api/medical-help', async (req, res) => {
+  try {
+    const donors = await MedicalHelp.find()
+    res.json(donors)
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch medical help data' })
+  }
+})
+
+app.post('/api/medical-help', async (req, res) => {
+  try {
+    const payload = req.body || {}
+    
+    // Get next ID
+    const lastDonor = await MedicalHelp.findOne().sort({ id: -1 })
+    const nextId = lastDonor ? lastDonor.id + 1 : 1
+    
+    const donor = new MedicalHelp({
+      id: nextId,
+      name: payload.fullName || payload.name || 'Anonymous',
+      bloodGroup: payload.bloodGroup || 'O+',
+      contact: payload.phoneNumber || payload.contact || '',
+      location: `${payload.department} - ${payload.year} Year`,
+      availability: 'Available',
+      lastDonated: payload.lastDonationDate || '',
+      emergencyContact: payload.phoneNumber || payload.contact || '',
+      conditions: [],
+    })
+    await donor.save()
+    res.status(201).json(donor)
+  } catch (error) {
+    console.error('Create medical help error:', error)
+    res.status(500).json({ message: 'Failed to create medical help entry' })
+  }
+})
+
+app.delete('/api/medical-help/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const donor = await MedicalHelp.findOneAndDelete({ id })
+    if (!donor) return res.status(404).json({ message: 'Medical help entry not found.' })
+    res.json(donor)
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete medical help entry' })
+  }
+})
+
+// Payment Tracking Endpoints
+app.post('/api/payments', async (req, res) => {
+  try {
+    const { paymentId, orderId, amount, status, userId, items, customerEmail, customerName } = req.body || {}
+    
+    // Get next payment ID
+    const lastPayment = await Payment.findOne().sort({ id: -1 })
+    const nextId = lastPayment ? lastPayment.id + 1 : 1
+    
+    const payment = new Payment({
+      id: nextId,
+      paymentId,
+      orderId,
+      amount,
+      currency: 'INR',
+      status: status || 'created',
+      userId: userId || null,
+      items: items || [],
+      customerEmail,
+      customerName,
+    })
+    await payment.save()
+    
+    res.status(201).json(payment)
+  } catch (error) {
+    console.error('Create payment error:', error)
+    res.status(500).json({ message: 'Failed to create payment record' })
+  }
+})
+
+app.patch('/api/payments/:paymentId/status', async (req, res) => {
+  try {
+    const { paymentId } = req.params
+    const { status } = req.body || {}
+    
+    const payment = await Payment.findOneAndUpdate(
+      { paymentId },
+      { status, updatedAt: new Date() },
+      { new: true }
+    )
+    
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' })
+    }
+    
+    res.json(payment)
+  } catch (error) {
+    console.error('Update payment status error:', error)
+    res.status(500).json({ message: 'Failed to update payment status' })
+  }
+})
+
+app.get('/api/payments/user/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId
+    const payments = await Payment.find({ userId }).sort({ createdAt: -1 })
+    res.json(payments)
+  } catch (error) {
+    console.error('Get user payments error:', error)
+    res.status(500).json({ message: 'Failed to fetch user payments' })
   }
 })
 

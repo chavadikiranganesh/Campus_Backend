@@ -11,6 +11,7 @@ import { About } from './pages/About'
 import { Admin } from './pages/Admin'
 import { Profile } from './pages/Profile'
 import { Settings } from './pages/Settings'
+import { Cart } from './components/Cart'
 import { Layout } from './components/Layout'
 import { AuthPage } from './pages/Auth'
 import { ForgotPassword } from './pages/ForgotPassword'
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/events" element={<EventCalendar />} />
           <Route path="/study-groups" element={<StudyGroupFinder />} />
           <Route path="/medical-help" element={<MedicalHelp />} />
+          <Route path="/cart" element={<Cart />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<Admin />} />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { API_BASE } from '../api'
+import { useCart } from '../context/CartContext'
 
 const sampleItems = [
   {
@@ -64,6 +65,7 @@ interface Material {
 }
 
 export function Marketplace() {
+  const { addToCart } = useCart()
   const [category, setCategory] = useState<(typeof categories)[number]>('All')
   const [type, setType] = useState<(typeof types)[number]>('All')
   const [query, setQuery] = useState('')
@@ -106,6 +108,29 @@ export function Marketplace() {
 
     return matchesCategory && matchesType && matchesQuery
   })
+
+  const handleAddToCart = (item: Material) => {
+    if (item.type === 'Donation') {
+      // Simple, reliable alert for donations
+      window.alert(`🎁 Donation Available!\n\nItem: ${item.title}\nContact: ${item.owner}\n\nPlease reach out directly to arrange pickup/delivery.`)
+      return
+    }
+    
+    // Handle sale items
+    const priceMatch = item.price.match(/(\d+)/)
+    const price = priceMatch ? parseInt(priceMatch[1]) : 0
+    
+    addToCart({
+      id: item.id,
+      title: item.title,
+      price: price,
+      category: item.category,
+      course: item.course,
+      owner: item.owner,
+    })
+    
+    window.alert(`✅ ${item.title} added to cart!`)
+  }
 
   return (
     <div className="space-y-6">
@@ -192,6 +217,26 @@ export function Marketplace() {
                 {item.owner}
               </span>
             </div>
+            {item.type === 'For Sale' && (
+              <div className="mt-2">
+                <button
+                  onClick={() => handleAddToCart(item)}
+                  className="w-full rounded-full bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                >
+                  Add to Cart
+                </button>
+              </div>
+            )}
+            {item.type === 'Donation' && (
+              <div className="mt-2">
+                <button
+                  onClick={() => handleAddToCart(item)}
+                  className="w-full rounded-full bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 transition-colors"
+                >
+                  🎁 Contact for Donation
+                </button>
+              </div>
+            )}
           </article>
         ))}
 

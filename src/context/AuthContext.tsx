@@ -64,9 +64,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json().catch(() => ({}))
       throw new Error(data.message || 'Registration failed')
     }
-    const data = (await response.json()) as AuthUser
-    setUser(data)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    // Registration successful - don't log in automatically
+    // The Auth page will handle redirecting to login
   }
 
   const logout = () => {

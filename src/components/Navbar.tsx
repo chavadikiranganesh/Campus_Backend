@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import { useCart } from '../context/CartContext'
 import { API_BASE } from '../api'
 
 const linkBase =
@@ -18,6 +19,7 @@ interface SearchResult {
 export function Navbar() {
   const { user, logout } = useAuth()
   const { resolved, setTheme } = useTheme()
+  const { cart } = useCart()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [servicesOpen, setServicesOpen] = useState(false)
@@ -328,8 +330,8 @@ export function Navbar() {
                     <p className="px-3 py-4 text-sm text-slate-500 dark:text-slate-400">No new notifications</p>
                   ) : (
                     <ul className="max-h-64 overflow-y-auto">
-                      {notifications.slice().reverse().slice(0, 10).map((n) => (
-                        <li key={n.id} className="border-b border-slate-100 px-3 py-2 last:border-0 dark:border-slate-700">
+                      {notifications.slice().reverse().slice(0, 10).map((n, index) => (
+                        <li key={n.id || `notif-${index}`} className="border-b border-slate-100 px-3 py-2 last:border-0 dark:border-slate-700">
                           <p className="text-xs font-medium text-slate-900 dark:text-slate-50">{n.title}</p>
                           <p className="text-[11px] text-slate-500 dark:text-slate-400">{n.body || new Date(n.at).toLocaleString()}</p>
                         </li>
@@ -339,6 +341,23 @@ export function Navbar() {
                 </div>
               )}
             </div>
+          )}
+
+          {/* Cart */}
+          {user && (
+            <button
+              type="button"
+              onClick={() => navigate('/cart')}
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-all duration-200"
+              aria-label="Shopping cart"
+            >
+              🛒
+              {cart.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] text-white">
+                  {cart.length > 9 ? '9+' : cart.length}
+                </span>
+              )}
+            </button>
           )}
 
           {/* Profile */}
@@ -375,16 +394,6 @@ export function Navbar() {
                       className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
                     >
                       Profile
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigate('/settings')
-                        setProfileOpen(false)
-                      }}
-                      className="w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
-                    >
-                      Settings
                     </button>
                     {user.role === 'admin' && (
                       <button

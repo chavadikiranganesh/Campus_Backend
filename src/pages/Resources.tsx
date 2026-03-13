@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import { API_BASE } from '../api'
 
 const categories = ['Book', 'Instrument', 'Calculator', 'Notes'] as const
@@ -26,6 +27,7 @@ type ViewMode = 'browse' | 'add'
 
 export function Resources() {
   const { user } = useAuth()
+  const { addToCart } = useCart()
   const [view, setView] = useState<ViewMode>('browse')
   const [items, setItems] = useState<Material[]>([])
   const [details, setDetails] = useState<Material | null>(null)
@@ -155,6 +157,29 @@ export function Resources() {
   const canDelete = (material: Material) => {
     if (!user) return false
     return user.role === 'admin' || material.postedByUserId === user.id
+  }
+
+  const handleAddToCart = (item: Material) => {
+    if (item.type === 'Donation') {
+      // Simple, reliable alert for donations
+      window.alert(`🎁 Donation Available!\n\nItem: ${item.title}\nContact: ${item.owner}\n${item.ownerContact ? `Phone/Email: ${item.ownerContact}\n` : ''}Please reach out directly to arrange pickup/delivery.`)
+      return
+    }
+    
+    // Handle sale items
+    const priceMatch = item.price.match(/(\d+)/)
+    const price = priceMatch ? parseInt(priceMatch[1]) : 0
+    
+    addToCart({
+      id: item.id,
+      title: item.title,
+      price: price,
+      category: item.category,
+      course: item.course,
+      owner: item.owner,
+    })
+    
+    window.alert(`✅ ${item.title} added to cart!`)
   }
 
   const filteredItems = items.filter((item) => {
@@ -476,6 +501,24 @@ export function Resources() {
                   >
                     View details
                   </button>
+                  {item.type === 'For Sale' && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(item)}
+                      className="rounded-full bg-green-600 px-3 py-1 font-medium text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                    >
+                      Add to Cart
+                    </button>
+                  )}
+                  {item.type === 'Donation' && (
+                    <button
+                      type="button"
+                      onClick={() => handleAddToCart(item)}
+                      className="rounded-full bg-emerald-600 px-3 py-1 font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 transition-colors"
+                    >
+                      🎁 Contact for Donation
+                    </button>
+                  )}
                   {canDelete(item) && (
                     <button
                       type="button"

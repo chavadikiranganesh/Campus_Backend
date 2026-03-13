@@ -53,6 +53,12 @@ export function LostAndFound() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setFormError(null)
+    
+    if (!user) {
+      setFormError('Please log in to post items.')
+      return
+    }
+    
     setSaving(true)
     try {
       let imageUrl = ''
@@ -70,10 +76,13 @@ export function LostAndFound() {
           location,
           contact: contact || user?.email,
           imageUrl,
-          userId: user?.id,
+          postedByUserId: user?.id,
         }),
       })
-      if (!res.ok) throw new Error('Failed to post')
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to post')
+      }
       const created = await res.json()
       setItems((prev) => [...prev, created])
       setTitle('')
@@ -82,8 +91,9 @@ export function LostAndFound() {
       setContact(user?.email ?? '')
       setImageFile(null)
       setShowForm(false)
-    } catch {
-      setFormError('Could not post. Try again.')
+    } catch (error) {
+      console.error('Lost & Found post error:', error)
+      setFormError((error as Error).message || 'Could not post. Try again.')
     } finally {
       setSaving(false)
     }
