@@ -21,8 +21,8 @@ let geminiModel = null
 
 if (hasGeminiKey) {
   genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  // Use the latest stable Gemini 1.5 Flash model ID
-  geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' })
+  // Use a v2 flash model; 1.5 models return 404 for many new projects
+  geminiModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 }
 
 // MongoDB Connection
