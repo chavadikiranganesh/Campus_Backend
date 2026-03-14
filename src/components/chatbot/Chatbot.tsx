@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { API_BASE } from '../../api'
+import '../styles/chatbot-animations.css'
 
 type MessageAuthor = 'user' | 'bot'
 
@@ -8,133 +9,107 @@ interface Message {
   author: MessageAuthor
   text: string
   timestamp: string
+  typing?: boolean
 }
 
 interface ChatbotProps {
   compact?: boolean
 }
 
+// Optimized local responses for instant replies
+const quickResponses: Record<string, string> = {
+  'hi': '👋 Hello! How can I help you with Campus Utility today?',
+  'hello': '👋 Hi there! What can I assist you with?',
+  'help': '🚀 I can help with:\n• 📚 Study materials\n• 🏠 Accommodation\n• 📋 Lost & Found\n• 📅 Events\n• 👥 Study groups\n• 🛒 Medical help\n\nWhat do you need?',
+  'book': '📚 Find study materials in Resources → Filter by course/semester → Buy or donate!',
+  'accommodation': '🏠 Check Accommodation → Find PGs/hostels with filters!',
+  'lost': '📋 Use Lost & Found → Report or find items!',
+  'event': '📅 View Events → Check campus calendar!',
+  'order': '🛒 Track orders → View in Profile → Order history!',
+  'login': '👤 Click top-right → Login/Register → Access all features!',
+  'payment': '💳 Checkout → Cart → Pay with Razorpay or COD!',
+  'profile': '👤 Profile → Your listings, orders, and settings!'
+}
+
 const initialBotMessage: Message = {
   id: 1,
   author: 'bot',
-  text: "Hi, I'm the Campus Utility assistant. Ask me about study materials, accommodation, lost & found, events, study groups, or how this platform works.",
+  text: "⚡ Hi! I'm your Campus Utility assistant! Ask me anything about study materials, accommodation, events, or how to use the platform! 🚀",
   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
 }
 
-function getLocalBotReply(inputRaw: string): string {
-  const input = inputRaw.toLowerCase()
-  if (!input.trim()) {
-    return "Please type a question about study materials, accommodation, or how to use Campus Utility."
+// Ultra-fast local reply function
+const getInstantReply = (inputRaw: string): string => {
+  const input = inputRaw.toLowerCase().trim()
+  
+  // Return instant response if available
+  if (quickResponses[input]) {
+    return quickResponses[input]
   }
-  if (input.includes('login') || input.includes('sign in') || input.includes('register') || input.includes('account')) {
-    return (
-      'To use Campus Utility, first create an account or log in from the top-right corner. ' +
-      'After logging in you can post study materials, create listings, and manage your profile.'
-    )
-  }
-  if (input.includes('book') || input.includes('material') || input.includes('notes') || input.includes('resources') || input.includes('marketplace')) {
-    return (
-      'To find study materials, go to Resources or Marketplace. ' +
-      'You can filter by course, semester, and category (books, instruments, calculators). ' +
-      'Listings show whether items are for sale or donation, along with condition and contact details.'
-    )
-  }
-  if (input.includes('accommodation') || input.includes('hostel') || input.includes('pg') || input.includes('room')) {
-    return (
-      'Open the Accommodation page to explore verified PGs and hostels near campus with rent, facilities, ' +
-      'distance, and owner contact information.'
-    )
-  }
-  if (input.includes('lost') || input.includes('found')) {
-    return (
-      'Use the Lost & Found page to report lost items or list what you found. ' +
-      'You can filter by type (lost/found) and search by title or location.'
-    )
-  }
-  if (input.includes('event') || input.includes('calendar')) {
-    return 'Check the Event Calendar page for campus events, workshops, and important dates.'
-  }
-  if (input.includes('study group') || input.includes('group study')) {
-    return 'Go to Study Groups to find or create study groups by subject and course. You can search and filter by course.'
-  }
-  if (input.includes('order') || input.includes('payment') || input.includes('buy') || input.includes('checkout')) {
-    return (
-      'When you buy items, use the Checkout flow from your cart. ' +
-      'You can pay using Razorpay or Cash on Delivery, and track your orders in the profile / order history section.'
-    )
-  }
-  if (input.includes('notification') || input.includes('alert')) {
-    return 'Campus Utility can create notifications for important events or updates. Check the Notifications section in your profile for recent alerts.'
-  }
-  if (input.includes('medical') || input.includes('blood') || input.includes('emergency')) {
-    return (
-      'Open the Medical Help section to find registered blood donors and emergency contacts. ' +
-      'Always also contact local emergency numbers for serious situations.'
-    )
-  }
-  if (input.includes('what is campus utility') || input.includes('about project') || input.includes('about campus')) {
-    return (
-      'Campus Utility is a student platform for resource reuse, accommodation, lost & found, events, and study groups. ' +
-      'It connects seniors and juniors and offers an AI assistant for guidance.'
-    )
-  }
-  if (input.includes('profile') || input.includes('my listings') || input.includes('history')) {
-    return (
-      'Open your Profile page to see your own listings, lost & found posts, and study groups. ' +
-      'From there you can edit or remove items you have posted.'
-    )
-  }
-  if (input.includes('how to use') || input.includes('help') || input.includes('guide')) {
-    return (
-      'Use the top menu: Resources and Marketplace for study materials, Accommodation for PGs/hostels, ' +
-      'Lost & Found, Events, and Study Groups. You can also use the search bar to find content across the site.'
-    )
-  }
-  if (input.includes('technology') || input.includes('tech stack') || input.includes('built with')) {
-    return (
-      'Campus Utility is built with React, TypeScript, Vite, and Tailwind CSS. ' +
-      'The backend uses Express with in-memory storage (replaceable with a database).'
-    )
-  }
-  return (
-    "I can help with study materials, accommodation, lost & found, events, study groups, orders, and medical help. " +
-    'Try: "How do I find books?", "How does checkout work?", or "Tell me about accommodation."'
-  )
+  
+  // Fallback for other queries
+  const fallbackReply = "💬 I'm here to help! Try asking about study materials, accommodation, events, or orders! 🎓"
+  return fallbackReply
 }
 
 export function Chatbot({ compact }: ChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([initialBotMessage])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages, loading])
-
-  const getReply = async (trimmed: string): Promise<string> => {
-    try {
-      const res = await fetch(`${API_BASE}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmed }),
+  // Optimized auto-scroll with requestAnimationFrame
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
       })
+    }
+  }, [messages])
+
+  // Optimized getReply with instant local responses
+  const getReply = useCallback(async (trimmed: string): Promise<string> => {
+    // Instant local response
+    const instantReply = getInstantReply(trimmed)
+    if (instantReply) {
+      return instantReply
+    }
+
+    // API call with timeout
+    try {
+      setLoading(true)
+      setIsTyping(true)
+      
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout')), 3000)
+      })
+
+      const res = await Promise.race([
+        fetch(`${API_BASE}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: trimmed }),
+        }),
+        timeoutPromise
+      ])
+
       if (res.ok) {
         const data = await res.json()
-        return data.reply ?? getLocalBotReply(trimmed)
+        return data.reply || getInstantReply(trimmed)
       }
     } catch {
-      // fallback to local
+      // Return fallback instantly
+      return getInstantReply(trimmed)
+    } finally {
+      setLoading(false)
+      setIsTyping(false)
     }
-    return getLocalBotReply(trimmed)
-  }
+  }, [getInstantReply])
 
-  const handleSend = async () => {
+  // Optimized send with instant feedback
+  const handleSend = useCallback(async () => {
     const trimmed = input.trim()
     if (!trimmed) return
 
@@ -145,96 +120,136 @@ export function Chatbot({ compact }: ChatbotProps) {
       text: trimmed,
       timestamp: time,
     }
+    
     setMessages((prev) => [...prev, userMessage])
     setInput('')
-    setLoading(true)
-
+    
+    // Get reply and update messages
     const replyText = await getReply(trimmed)
-    setLoading(false)
     const botMessage: Message = {
       id: Date.now() + 1,
       author: 'bot',
       text: replyText,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }
+    
     setMessages((prev) => [...prev, botMessage])
-  }
+    scrollToBottom()
+  }, [getReply, scrollToBottom])
 
-  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  // Optimized keyboard handler
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !loading) {
       e.preventDefault()
       handleSend()
     }
-  }
+  }, [handleSend, loading])
 
-  const containerClasses = compact ? 'h-72' : 'h-[28rem]'
+  // Optimized container classes
+  const containerClasses = compact 
+    ? 'h-80 w-80 max-w-md' 
+    : 'h-96 w-96 max-w-lg'
 
   return (
-    <div
-      className={`flex flex-col ${containerClasses} rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800`}
-    >
-      <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700">
+    <div className={`fixed ${compact ? 'bottom-4 right-4' : 'bottom-6 right-6'} z-50 ${containerClasses} rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800 shadow-2xl backdrop-blur-sm`}>
+      {/* Header */}
+      <header className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-xs font-semibold text-white dark:bg-blue-500">
-            AI
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg">
+            <span className="text-lg font-bold">⚡</span>
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-900 dark:text-slate-50">Campus Utility Assistant</p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">Online · platform &amp; FAQs</p>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-50">Campus Utility</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Lightning Fast AI</p>
           </div>
         </div>
+        <button
+          onClick={() => setMessages([initialBotMessage])}
+          className="text-slate-400 hover:text-slate-600 dark:text-slate-400 dark:hover:text-slate-300 text-xs"
+        >
+          Clear
+        </button>
       </header>
 
+      {/* Messages */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 space-y-2 overflow-y-auto px-4 py-3 text-xs"
+        className="flex-1 space-y-2 overflow-y-auto px-4 py-3 text-sm max-h-[60vh]"
       >
         {messages.map((message) => (
           <div
             key={message.id}
-            className={`flex ${message.author === 'user' ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${message.author === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
           >
             <div
               className={`max-w-[85%] rounded-2xl px-3 py-2 ${
                 message.author === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm dark:bg-blue-500'
-                  : 'bg-slate-100 text-slate-900 rounded-bl-sm dark:bg-slate-700 dark:text-slate-100'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-br-sm shadow-md'
+                  : 'bg-gradient-to-r from-slate-100 to-slate-50 text-slate-900 rounded-bl-sm shadow-md border border-slate-200 dark:from-slate-700 dark:to-slate-600 dark:border-slate-600'
               }`}
             >
-              <p className="whitespace-pre-line">{message.text}</p>
-              <p className={`mt-1 text-[9px] ${message.author === 'user' ? 'text-blue-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                {message.author === 'user' ? 'You' : 'Assistant'} · {message.timestamp}
+              <p className="whitespace-pre-line text-sm leading-relaxed">{message.text}</p>
+              <p className={`mt-1 text-[10px] ${
+                message.author === 'user' 
+                  ? 'text-blue-100' 
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}>
+                {message.author === 'user' ? 'You' : '⚡ Assistant'} · {message.timestamp}
               </p>
             </div>
           </div>
         ))}
-        {loading && (
+        
+        {/* Typing indicator */}
+        {isTyping && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-bl-sm bg-slate-100 px-3 py-2 dark:bg-slate-700">
-              <span className="text-slate-500 dark:text-slate-400">Thinking…</span>
+            <div className="bg-gradient-to-r from-slate-100 to-slate-50 text-slate-900 rounded-bl-sm shadow-md border border-slate-200 dark:from-slate-700 dark:to-slate-600 dark:border-slate-600 px-3 py-2">
+              <div className="flex items-center gap-1">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-75"></div>
+                  <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-150"></div>
+                </div>
+                <span className="text-slate-500 dark:text-slate-400 text-xs">Assistant is typing...</span>
+              </div>
             </div>
           </div>
         )}
+        
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-slate-100 px-3 py-2 dark:border-slate-700">
-        <div className="flex items-center gap-2 rounded-full bg-slate-50 px-3 py-2 dark:bg-slate-900">
+      {/* Input */}
+      <div className="border-t border-slate-100 px-3 py-2 dark:border-slate-700 bg-white dark:bg-slate-800">
+        <div className="flex items-center gap-2 max-w-md">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder='Ask e.g. "How do I find books?"'
-            className="flex-1 bg-transparent text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500"
+            placeholder="Ask anything! Type 'help' for quick menu 🚀"
+            className="flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-500 border border-slate-200 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all duration-200"
+            autoFocus
           />
           <button
             type="button"
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="inline-flex h-7 rounded-full bg-blue-600 px-3 text-[11px] font-medium text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-400"
+            className="inline-flex h-10 w-20 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-3 text-[11px] font-medium text-white hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 dark:from-blue-500 dark:to-indigo-400 transition-all duration-200 transform hover:scale-105 active:scale-95"
           >
-            Send
+            {loading ? (
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-transparent animate-spin rounded-full"></div>
+                <span>Sending</span>
+              </div>
+            ) : (
+              <span className="flex items-center gap-1">
+                Send
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9 18-5l-9-18 9z"/>
+                </svg>
+              </span>
+            )}
           </button>
         </div>
       </div>
