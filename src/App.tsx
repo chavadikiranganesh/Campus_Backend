@@ -16,7 +16,6 @@ import { Layout } from './components/Layout'
 import { AuthPage } from './pages/Auth'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
-import { ChatBot } from './components/ChatBot'
 
 export default function App() {
   return (
@@ -40,7 +39,6 @@ export default function App() {
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/about" element={<About />} />
-          <Route path="/chat" element={<ChatBot />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>

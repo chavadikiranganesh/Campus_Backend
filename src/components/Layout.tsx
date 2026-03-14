@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import { Footer } from './Footer'
 import { useAuth } from '../context/AuthContext'
-import { Chatbot } from './chatbot/Chatbot'
+import { ChatBot } from './ChatBot'
 
 export function Layout() {
   const { user, loading } = useAuth()
@@ -53,7 +53,7 @@ export function Layout() {
         <div className="pointer-events-none fixed bottom-4 right-4 z-30 flex flex-col items-end gap-2">
           {chatOpen && (
             <div className="pointer-events-auto mb-2 w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-900/80">
-              <Chatbot />
+              <ChatBot />
             </div>
           )}
           <button
