@@ -5,7 +5,12 @@ const userSchema = new mongoose.Schema({
   id: { type: Number, unique: true, sparse: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  password: { 
+    type: String, 
+    required: true,
+    minlength: 60, // bcrypt hashes are typically 60 characters long
+    select: false // Don't include password in queries by default
+  },
   role: { type: String, default: 'user', enum: ['user', 'admin'] },
   createdAt: { type: Date, default: Date.now },
   lastLoginAt: { type: Date, default: null },

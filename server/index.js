@@ -126,14 +126,30 @@ app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body || {}
     
     // Find user by email (not by password since it's now hashed)
-    const user = await User.findOne({ email })
+    const user = await User.findOne({ email }).select('+password') // Explicitly include password field
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password.' })
     }
 
-    // Compare entered password with stored hashed password
-    const isMatch = await bcrypt.compare(password, user.password)
+    // Check if password is hashed (60+ characters) or plain text
+    let isMatch
+    if (user.password && user.password.length >= 60) {
+      // Password is already hashed, use bcrypt comparison
+      isMatch = await bcrypt.compare(password, user.password)
+    } else {
+      // Password is plain text, compare directly and then hash it
+      isMatch = password === user.password
+      if (isMatch) {
+        // Hash the plain text password for future security
+        const saltRounds = 10
+        const hashedPassword = await bcrypt.hash(password, saltRounds)
+        await User.updateOne(
+          { _id: user._id },
+          { password: hashedPassword }
+        )
+      }
+    }
 
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password.' })
