@@ -4,6 +4,7 @@ const express = require('express')
 const cors = require('cors')
 const Razorpay = require("razorpay")
 const { GoogleGenerativeAI } = require('@google/generative-ai')
+const bcrypt = require('bcrypt')
 const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
@@ -97,11 +98,15 @@ app.post('/api/auth/register', async (req, res) => {
     const lastUser = await User.findOne().sort({ id: -1 })
     const nextId = lastUser ? lastUser.id + 1 : 1
 
+    // Hash password with bcrypt
+    const saltRounds = 10
+    const hashedPassword = await bcrypt.hash(password, saltRounds)
+
     const user = new User({
       id: nextId,
       name,
       email,
-      password,
+      password: hashedPassword, // Store hashed password
       role: 'user',
       createdAt: new Date(),
       lastLoginAt: null,
@@ -119,9 +124,18 @@ app.post('/api/auth/register', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body || {}
-    const user = await User.findOne({ email, password })
+    
+    // Find user by email (not by password since it's now hashed)
+    const user = await User.findOne({ email })
 
     if (!user) {
+      return res.status(401).json({ message: 'Invalid email or password.' })
+    }
+
+    // Compare entered password with stored hashed password
+    const isMatch = await bcrypt.compare(password, user.password)
+
+    if (!isMatch) {
       return res.status(401).json({ message: 'Invalid email or password.' })
     }
 
