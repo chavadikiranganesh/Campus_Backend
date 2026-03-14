@@ -99,15 +99,7 @@ const PORT = process.env.PORT || 5000
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cors({
-  origin: [
-    'https://campus-backend-1-sm36.onrender.com',
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:5173',
-    'http://127.0.0.1:3000',
-    'http://localhost:5175',
-    'http://127.0.0.1:5175'
-  ],
+  origin: true, // Allow all origins
   credentials: true
 }))
 
