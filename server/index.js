@@ -227,9 +227,23 @@ app.post('/api/materials', async (req, res) => {
       ownerContact: payload.ownerContact || '',
       imageUrl: payload.imageUrl || '',
       description: payload.description || '',
-      
     })
     await newItem.save()
+
+    // Broadcast notification about new study material (visible to all users)
+    try {
+      const notification = new Notification({
+        userId: null,
+        title: `New study material: ${newItem.title}`,
+        message: `${newItem.course || 'Course'} · ${newItem.category || 'Material'} · ${newItem.price || ''}`,
+        read: false,
+      })
+      await notification.save()
+    } catch (e) {
+      // Notification failure shouldn't block material creation
+      console.error('Create material notification error:', e)
+    }
+
     res.status(201).json(newItem)
   } catch (error) {
     console.error('Create material error:', error)
@@ -596,6 +610,20 @@ app.post('/api/accommodations', async (req, res) => {
       photos: photos.filter(Boolean),
     })
     await newPlace.save()
+
+    // Broadcast notification about new accommodation/PG
+    try {
+      const notification = new Notification({
+        userId: null,
+        title: `New accommodation: ${newPlace.name}`,
+        message: `${newPlace.rent || ''} · ${newPlace.distance || ''}`,
+        read: false,
+      })
+      await notification.save()
+    } catch (e) {
+      console.error('Create accommodation notification error:', e)
+    }
+
     res.status(201).json(newPlace)
   } catch (error) {
     console.error('Create accommodation error:', error)
@@ -805,7 +833,14 @@ function getChatbotReply(messageRaw) {
     return "Please type a question about study materials, accommodation, or how to use Campus Utility."
   }
 
-  if (message.includes('book') || message.includes('material') || message.includes('notes')) {
+  if (message.includes('login') || message.includes('sign in') || message.includes('register') || message.includes('account')) {
+    return (
+      'To use Campus Utility, first create an account or log in from the top-right corner. ' +
+      'After logging in you can post study materials, manage your listings, and view your order history.'
+    )
+  }
+
+  if (message.includes('book') || message.includes('material') || message.includes('notes') || message.includes('resources') || message.includes('marketplace')) {
     return (
       'To find study materials, go to the “Study Materials” section. ' +
       'You can filter by course, semester, and category (books, instruments, calculators). ' +
@@ -821,6 +856,24 @@ function getChatbotReply(messageRaw) {
     )
   }
 
+  if (message.includes('order') || message.includes('payment') || message.includes('buy') || message.includes('checkout')) {
+    return (
+      'When you purchase items, proceed to Checkout from your cart. ' +
+      'You can pay using Razorpay or choose Cash on Delivery, and then track your orders from the profile / order history section.'
+    )
+  }
+
+  if (message.includes('notification') || message.includes('alert')) {
+    return 'Campus Utility can send notifications for new events or important updates. Open the Notifications section to review recent alerts.'
+  }
+
+  if (message.includes('medical') || message.includes('blood') || message.includes('emergency')) {
+    return (
+      'Use the Medical Help section to find registered blood donors and emergency contacts from your campus community. ' +
+      'For serious situations, always also contact local emergency services immediately.'
+    )
+  }
+
   if (message.includes('what is campus utility') || message.includes('about project') || message.includes('about campus')) {
     return (
       'Campus Utility is a React-based student utility platform that promotes resource reuse and student support. ' +
@@ -829,7 +882,14 @@ function getChatbotReply(messageRaw) {
     )
   }
 
-  if (message.includes('how to use') || message.includes('help')) {
+  if (message.includes('profile') || message.includes('my listings') || message.includes('history')) {
+    return (
+      'Open your Profile page to see your materials, lost & found posts, and study groups. ' +
+      'From there you can edit or remove anything you have posted.'
+    )
+  }
+
+  if (message.includes('how to use') || message.includes('help') || message.includes('guide')) {
     return (
       'You can navigate using the top menu. "Study Materials" lets you browse or post items. ' +
       '"Accommodation" helps you compare PG/hostel options. The chatbot answers FAQs and guides you step-by-step.'

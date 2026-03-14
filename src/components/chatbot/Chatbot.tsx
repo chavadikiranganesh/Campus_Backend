@@ -26,7 +26,13 @@ function getLocalBotReply(inputRaw: string): string {
   if (!input.trim()) {
     return "Please type a question about study materials, accommodation, or how to use Campus Utility."
   }
-  if (input.includes('book') || input.includes('material') || input.includes('notes')) {
+  if (input.includes('login') || input.includes('sign in') || input.includes('register') || input.includes('account')) {
+    return (
+      'To use Campus Utility, first create an account or log in from the top-right corner. ' +
+      'After logging in you can post study materials, create listings, and manage your profile.'
+    )
+  }
+  if (input.includes('book') || input.includes('material') || input.includes('notes') || input.includes('resources') || input.includes('marketplace')) {
     return (
       'To find study materials, go to Resources or Marketplace. ' +
       'You can filter by course, semester, and category (books, instruments, calculators). ' +
@@ -48,8 +54,23 @@ function getLocalBotReply(inputRaw: string): string {
   if (input.includes('event') || input.includes('calendar')) {
     return 'Check the Event Calendar page for campus events, workshops, and important dates.'
   }
-  if (input.includes('study group')) {
+  if (input.includes('study group') || input.includes('group study')) {
     return 'Go to Study Groups to find or create study groups by subject and course. You can search and filter by course.'
+  }
+  if (input.includes('order') || input.includes('payment') || input.includes('buy') || input.includes('checkout')) {
+    return (
+      'When you buy items, use the Checkout flow from your cart. ' +
+      'You can pay using Razorpay or Cash on Delivery, and track your orders in the profile / order history section.'
+    )
+  }
+  if (input.includes('notification') || input.includes('alert')) {
+    return 'Campus Utility can create notifications for important events or updates. Check the Notifications section in your profile for recent alerts.'
+  }
+  if (input.includes('medical') || input.includes('blood') || input.includes('emergency')) {
+    return (
+      'Open the Medical Help section to find registered blood donors and emergency contacts. ' +
+      'Always also contact local emergency numbers for serious situations.'
+    )
   }
   if (input.includes('what is campus utility') || input.includes('about project') || input.includes('about campus')) {
     return (
@@ -57,7 +78,13 @@ function getLocalBotReply(inputRaw: string): string {
       'It connects seniors and juniors and offers an AI assistant for guidance.'
     )
   }
-  if (input.includes('how to use') || input.includes('help')) {
+  if (input.includes('profile') || input.includes('my listings') || input.includes('history')) {
+    return (
+      'Open your Profile page to see your own listings, lost & found posts, and study groups. ' +
+      'From there you can edit or remove items you have posted.'
+    )
+  }
+  if (input.includes('how to use') || input.includes('help') || input.includes('guide')) {
     return (
       'Use the top menu: Resources and Marketplace for study materials, Accommodation for PGs/hostels, ' +
       'Lost & Found, Events, and Study Groups. You can also use the search bar to find content across the site.'
@@ -70,8 +97,8 @@ function getLocalBotReply(inputRaw: string): string {
     )
   }
   return (
-    "I can help with study materials, accommodation, lost & found, events, and study groups. " +
-    'Try: "How do I find books?" or "Tell me about accommodation."'
+    "I can help with study materials, accommodation, lost & found, events, study groups, orders, and medical help. " +
+    'Try: "How do I find books?", "How does checkout work?", or "Tell me about accommodation."'
   )
 }
 
