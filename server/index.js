@@ -21,8 +21,12 @@ const hasGeminiKey = !!process.env.GEMINI_API_KEY
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads')
+const lostFoundDir = path.join(__dirname, 'uploads', 'lostfound')
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
+}
+if (!fs.existsSync(lostFoundDir)) {
+  fs.mkdirSync(lostFoundDir, { recursive: true })
 }
 
 // Multer storage configuration
@@ -48,6 +52,26 @@ const fileFilter = (req, file, cb) => {
 // Multer middleware
 const upload = multer({
   storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+})
+
+// Multer storage for Lost & Found
+const lostFoundStorage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, lostFoundDir)
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, uniqueSuffix + '-' + file.originalname)
+  }
+})
+
+// Multer middleware for Lost & Found
+const uploadLostFound = multer({
+  storage: lostFoundStorage,
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -367,22 +391,45 @@ app.get('/api/lost-found', async (req, res) => {
   }
 })
 
-app.post('/api/lost-found', async (req, res) => {
+app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) => {
   try {
     const payload = req.body || {}
     const userId = payload.userId ? Number(payload.userId) : null
+    
+    // Validation - Check required fields
+    const requiredFields = ['title', 'location', 'contact']
+    const missingFields = requiredFields.filter(field => !payload[field])
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields 
+      })
+    }
+    
+    // Check if image was uploaded
+    if (!req.file) {
+      return res.status(400).json({ 
+        message: 'Image is required',
+        missingFields: ['image']
+      })
+    }
     
     // Get next ID
     const lastItem = await LostFound.findOne().sort({ id: -1 })
     const nextId = lastItem ? lastItem.id + 1 : 1
     
+    // Create image URL
+    const imageUrl = `/uploads/lostfound/${req.file.filename}`
+    
     const item = new LostFound({
       id: nextId,
       type: payload.type || 'found',
-      title: payload.title || 'Untitled',
+      title: payload.title,
       description: payload.description || '',
-      location: payload.location || '',
-      contact: payload.contact || '',
+      location: payload.location,
+      contact: payload.contact,
+      imageUrl: imageUrl,
       createdAt: new Date(),
       postedByUserId: userId,
     })

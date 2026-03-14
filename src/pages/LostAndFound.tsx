@@ -59,26 +59,42 @@ export function LostAndFound() {
       return
     }
     
+    // Validation - Check required fields
+    const requiredFields = [
+      { value: title, name: 'Title' },
+      { value: location, name: 'Location' },
+      { value: contact, name: 'Contact' },
+      { value: imageFile, name: 'Image' }
+    ]
+
+    const missingFields = requiredFields.filter(({ value }) => !value)
+    
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(({ name }) => name).join(', ')
+      setFormError(`${fieldNames} ${missingFields.length === 1 ? 'is' : 'are'} required`)
+      return
+    }
+    
     setSaving(true)
     try {
-      let imageUrl = ''
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('type', type)
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('location', location)
+      formData.append('contact', contact || user?.email)
+      formData.append('postedByUserId', String(user?.id || ''))
+      
       if (imageFile) {
-        imageUrl = URL.createObjectURL(imageFile)
+        formData.append('image', imageFile)
       }
 
       const res = await fetch(`${API_BASE}/api/lost-found`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type,
-          title,
-          description,
-          location,
-          contact: contact || user?.email,
-          imageUrl,
-          postedByUserId: user?.id,
-        }),
+        body: formData,
       })
+      
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
         throw new Error(errorData.message || 'Failed to post')
@@ -198,7 +214,9 @@ export function LostAndFound() {
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Title</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                Title <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
                 value={title}
@@ -219,7 +237,9 @@ export function LostAndFound() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Location</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                Location <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
                 value={location}
@@ -229,7 +249,9 @@ export function LostAndFound() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Your contact</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                Your contact <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
                 value={contact}
@@ -239,16 +261,32 @@ export function LostAndFound() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Image (optional)</label>
+              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">
+                Image <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                required
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:file:bg-blue-900/40 dark:file:text-blue-200"
               />
-              {imageFile && (
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Selected: {imageFile.name}
+              {imageFile ? (
+                <div className="mt-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Selected: {imageFile.name}
+                  </p>
+                  <div className="mt-2 h-20 w-20 overflow-hidden rounded-lg border border-slate-200">
+                    <img
+                      src={URL.createObjectURL(imageFile)}
+                      alt="Preview"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                  Image is required
                 </p>
               )}
             </div>
@@ -284,12 +322,20 @@ export function LostAndFound() {
                 : 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20'
             }`}
           >
-            {item.imageUrl && (
+            {item.imageUrl ? (
               <img
-                src={item.imageUrl}
+                src={`${API_BASE}${item.imageUrl}`}
                 alt={item.title}
                 className="mb-2 h-32 w-full rounded-lg object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
               />
+            ) : (
+              <div className="mb-2 h-32 w-full rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-400 dark:bg-slate-800 dark:text-slate-300">
+                No image
+              </div>
             )}
             <span
               className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
