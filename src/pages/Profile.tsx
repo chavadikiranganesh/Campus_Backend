@@ -43,10 +43,11 @@ export function Profile() {
           setListings(data)
         }
 
-        // Load orders from localStorage
-        const storedOrders = localStorage.getItem(`orders_${user.id}`)
-        if (storedOrders) {
-          setOrders(JSON.parse(storedOrders))
+        // Load orders from database
+        const ordersRes = await fetch(`${API_BASE}/api/orders/user/${user.id}`)
+        if (ordersRes.ok) {
+          const ordersData = await ordersRes.json()
+          setOrders(ordersData)
         }
       } finally {
         setLoading(false)

@@ -4,7 +4,7 @@ const express = require('express')
 const cors = require('cors')
 const Razorpay = require("razorpay")
 const OpenAI = require('openai')
-const { User, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
+const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
 const razorpay = new Razorpay({
@@ -716,6 +716,78 @@ app.get('/api/payments/user/:userId', async (req, res) => {
   } catch (error) {
     console.error('Get user payments error:', error)
     res.status(500).json({ message: 'Failed to fetch user payments' })
+  }
+})
+
+// Order API endpoints
+app.post('/api/orders', async (req, res) => {
+  try {
+    const orderData = req.body
+    
+    // Generate unique order ID
+    const orderId = Math.random().toString(36).substr(2, 9).toUpperCase()
+    
+    const order = new Order({
+      id: orderId,
+      userId: orderData.userId || new mongoose.Types.ObjectId(), // Will be updated with real user ID
+      items: orderData.items,
+      totalAmount: orderData.totalAmount,
+      paymentMethod: orderData.paymentMethod,
+      status: 'Processing',
+      deliveryAddress: orderData.deliveryAddress,
+      paymentId: orderData.paymentId,
+      receipt: orderData.receipt
+    })
+    
+    await order.save()
+    res.status(201).json(order)
+  } catch (error) {
+    console.error('Create order error:', error)
+    res.status(500).json({ message: 'Failed to create order' })
+  }
+})
+
+app.get('/api/orders/user/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId
+    const orders = await Order.find({ userId }).sort({ createdAt: -1 })
+    res.json(orders)
+  } catch (error) {
+    console.error('Get user orders error:', error)
+    res.status(500).json({ message: 'Failed to fetch user orders' })
+  }
+})
+
+app.get('/api/orders/:id', async (req, res) => {
+  try {
+    const order = await Order.findOne({ id: req.params.id })
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' })
+    }
+    res.json(order)
+  } catch (error) {
+    console.error('Get order error:', error)
+    res.status(500).json({ message: 'Failed to fetch order' })
+  }
+})
+
+app.patch('/api/orders/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body
+    const order = await Order.findOneAndUpdate(
+      { id: req.params.id },
+      { status },
+      { new: true }
+    )
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' })
+    }
+    
+    res.json(order)
+  } catch (error) {
+    console.error('Update order status error:', error)
+    res.status(500).json({ message: 'Failed to update order status' })
   }
 })
 

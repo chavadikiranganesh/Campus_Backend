@@ -40,9 +40,8 @@ export function Checkout() {
         // For COD, skip payment and directly place order
         await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate order processing
         
-        // Save order to localStorage
+        // Save order to database
         const order = {
-          id: Math.random().toString(36).substr(2, 9).toUpperCase(),
           items: cart.map(item => ({
             title: item.title,
             price: item.price,
@@ -50,25 +49,33 @@ export function Checkout() {
           })),
           totalAmount: finalTotal,
           paymentMethod: 'cod',
-          status: 'Processing',
-          createdAt: new Date().toISOString(),
           deliveryAddress: {
             fullName: formData.fullName,
             address: formData.address,
             city: formData.city,
             state: formData.state,
-            zipCode: formData.zipCode
-          }
+            zipCode: formData.zipCode,
+            phone: formData.phone,
+            email: formData.email
+          },
+          receipt: `receipt_${Date.now()}`
         }
         
-        // Save order to localStorage (in production, this would be saved to backend)
-        const userId = 'current_user' // This would come from auth context
-        const existingOrders = JSON.parse(localStorage.getItem(`orders_${userId}`) || '[]')
-        existingOrders.push(order)
-        localStorage.setItem(`orders_${userId}`, JSON.stringify(existingOrders))
+        // Save order to database
+        const response = await fetch('https://campus-backend-1-sm36.onrender.com/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(order)
+        })
         
-        clearCart()
-        navigate('/payment-success')
+        if (response.ok) {
+          clearCart()
+          navigate('/payment-success')
+        } else {
+          throw new Error('Failed to create order')
+        }
         return
       }
 
@@ -99,10 +106,9 @@ export function Checkout() {
         name: 'Campus Utility',
         description: 'Purchase of study materials',
         order_id: orderData.id,
-        handler: function (_response: any) {
-          // Payment successful - save order
+        handler: async function (_response: any) {
+          // Payment successful - save order to database
           const order = {
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
             items: cart.map(item => ({
               title: item.title,
               price: item.price,
@@ -110,25 +116,34 @@ export function Checkout() {
             })),
             totalAmount: finalTotal,
             paymentMethod: 'razorpay',
-            status: 'Processing',
-            createdAt: new Date().toISOString(),
             deliveryAddress: {
               fullName: formData.fullName,
               address: formData.address,
               city: formData.city,
               state: formData.state,
-              zipCode: formData.zipCode
-            }
+              zipCode: formData.zipCode,
+              phone: formData.phone,
+              email: formData.email
+            },
+            paymentId: _response.razorpay_payment_id,
+            receipt: `receipt_${Date.now()}`
           }
           
-          // Save order to localStorage (in production, this would be saved to backend)
-          const userId = 'current_user' // This would come from auth context
-          const existingOrders = JSON.parse(localStorage.getItem(`orders_${userId}`) || '[]')
-          existingOrders.push(order)
-          localStorage.setItem(`orders_${userId}`, JSON.stringify(existingOrders))
+          // Save order to database
+          const orderResponse = await fetch('https://campus-backend-1-sm36.onrender.com/api/orders', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(order)
+          })
           
-          clearCart()
-          navigate('/payment-success')
+          if (orderResponse.ok) {
+            clearCart()
+            navigate('/payment-success')
+          } else {
+            alert('Order created but failed to save. Please contact support.')
+          }
         },
         prefill: {
           name: formData.fullName,

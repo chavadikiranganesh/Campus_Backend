@@ -11,6 +11,32 @@ const userSchema = new mongoose.Schema({
   lastLoginAt: { type: Date, default: null },
 })
 
+// Order Schema
+const orderSchema = new mongoose.Schema({
+  id: { type: String, unique: true, sparse: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  items: [{
+    title: { type: String, required: true },
+    price: { type: Number, required: true },
+    owner: { type: String, required: true }
+  }],
+  totalAmount: { type: Number, required: true },
+  paymentMethod: { type: String, required: true, enum: ['cod', 'razorpay'] },
+  status: { type: String, default: 'Processing', enum: ['Processing', 'Shipped', 'Delivered', 'Cancelled'] },
+  createdAt: { type: Date, default: Date.now },
+  deliveryAddress: {
+    fullName: { type: String, required: true },
+    address: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    zipCode: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, required: true }
+  },
+  paymentId: { type: String }, // For Razorpay payments
+  receipt: { type: String }
+})
+
 // Study Materials Schema
 const studyMaterialSchema = new mongoose.Schema({
   id: { type: Number, unique: true, sparse: true },
@@ -131,6 +157,7 @@ const paymentSchema = new mongoose.Schema({
 
 // Create models
 const User = mongoose.model('User', userSchema)
+const Order = mongoose.model('Order', orderSchema)
 const StudyMaterial = mongoose.model('StudyMaterial', studyMaterialSchema)
 const Accommodation = mongoose.model('Accommodation', accommodationSchema)
 const LostFound = mongoose.model('LostFound', lostFoundSchema)
@@ -143,6 +170,7 @@ const Payment = mongoose.model('Payment', paymentSchema)
 
 module.exports = {
   User,
+  Order,
   StudyMaterial,
   Accommodation,
   LostFound,
