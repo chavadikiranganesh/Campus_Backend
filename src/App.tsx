@@ -16,6 +16,8 @@ import { Layout } from './components/Layout'
 import { AuthPage } from './pages/Auth'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
+import { Checkout } from './pages/Checkout'
+import { PaymentSuccess } from './pages/PaymentSuccess'
 
 export default function App() {
   return (
@@ -35,6 +37,8 @@ export default function App() {
           <Route path="/study-groups" element={<StudyGroupFinder />} />
           <Route path="/medical-help" element={<MedicalHelp />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/admin" element={<Admin />} />

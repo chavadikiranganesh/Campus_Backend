@@ -1,8 +1,9 @@
 import { useCart } from '../context/CartContext'
-import { PaymentButton } from './PaymentButton'
+import { useNavigate } from 'react-router-dom'
 
 export function Cart() {
   const { cart, removeFromCart, updateQuantity, getTotalPrice, clearCart } = useCart()
+  const navigate = useNavigate()
 
   if (cart.length === 0) {
     return (
@@ -84,19 +85,12 @@ export function Cart() {
         </div>
 
         <div className="space-y-2">
-          <PaymentButton
-            amount={totalPrice}
-            description={`Payment for ${cart.length} item(s)`}
-            itemName={cart.length === 1 ? cart[0].title : `${cart.length} items`}
-            onSuccess={(paymentId) => {
-              console.log('Payment successful:', paymentId)
-              clearCart()
-              alert(`Order placed! Payment ID: ${paymentId}`)
-            }}
-            onFailure={(error) => {
-              console.error('Payment failed:', error)
-            }}
-          />
+          <button
+            onClick={() => navigate('/checkout')}
+            className="w-full px-4 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Proceed to Checkout
+          </button>
           <button
             onClick={clearCart}
             className="w-full px-4 py-2 text-sm font-medium text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700"

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OpenAI Chat Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 300px; }
+        .response { background: #e9ecef; padding: 10px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🤖 OpenAI Chat Assistant Flow Test</h1>
+    
+    <div class="test-section">
+        <h3>Test OpenAI Integration</h3>
+        <input type="text" id="userMessage" placeholder="Ask about campus resources..." value="What study materials are available?">
+        <button onclick="testOpenAI()">Send to OpenAI</button>
+        <div id="response" class="response"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Quick Test Questions:</h3>
+        <button onclick="testQuestion('What study materials are available?')">Study Materials</button>
+        <button onclick="testQuestion('What accommodations are near campus?')">Accommodation</button>
+        <button onclick="testQuestion('How do I report a lost item?')">Lost & Found</button>
+        <button onclick="testQuestion('What events are happening?')">Events</button>
+    </div>
+
+    <script>
+        const API_BASE = 'https://campus-backend-1-sm36.onrender.com';
+        
+        async function testOpenAI() {
+            const message = document.getElementById('userMessage').value;
+            const responseDiv = document.getElementById('response');
+            
+            if (!message.trim()) {
+                responseDiv.innerHTML = '<div class="error">Please enter a message</div>';
+                return;
+            }
+            
+            responseDiv.innerHTML = '<div>🤔 Thinking...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    responseDiv.innerHTML = `
+                        <div class="success">✅ OpenAI Response:</div>
+                        <div><strong>User:</strong> ${message}</div>
+                        <div><strong>Assistant:</strong> ${data.reply}</div>
+                    `;
+                } else {
+                    responseDiv.innerHTML = `<div class="error">❌ Error: ${data.reply || 'Unknown error'}</div>`;
+                }
+            } catch (error) {
+                responseDiv.innerHTML = `<div class="error">❌ Network Error: ${error.message}</div>`;
+            }
+        }
+        
+        function testQuestion(question) {
+            document.getElementById('userMessage').value = question;
+            testOpenAI();
+        }
+        
+        // Auto-test on page load
+        window.onload = function() {
+            testQuestion('What study materials are available?');
+        };
+    </script>
+</body>
+</html>
