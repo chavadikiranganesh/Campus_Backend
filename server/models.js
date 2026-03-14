@@ -53,6 +53,9 @@ const studyMaterialSchema = new mongoose.Schema({
   type: String,
   price: String,
   owner: String,
+  ownerContact: String,
+  imageUrl: String,
+  description: String,
   postedByUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   createdAt: { type: Date, default: Date.now },
 })
@@ -78,6 +81,7 @@ const lostFoundSchema = new mongoose.Schema({
   description: String,
   location: String,
   contact: String,
+  imageUrl: String,
   createdAt: { type: Date, default: Date.now },
   postedByUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 })
@@ -125,14 +129,13 @@ const notificationSchema = new mongoose.Schema({
 // Medical Help/Blood Donors Schema
 const medicalHelpSchema = new mongoose.Schema({
   id: { type: Number, unique: true, sparse: true },
-  name: { type: String, required: true },
+  fullName: { type: String, required: true },
+  department: { type: String, required: true },
+  year: { type: String, required: true },
   bloodGroup: { type: String, required: true },
-  contact: { type: String, required: true },
-  location: { type: String, required: true },
-  availability: { type: String, required: true },
-  lastDonated: { type: String },
-  emergencyContact: { type: String },
-  conditions: [String],
+  phoneNumber: { type: String, required: true },
+  lastDonationDate: { type: String },
+  createdBy: { type: Number, default: null },
   createdAt: { type: Date, default: Date.now },
 })
 

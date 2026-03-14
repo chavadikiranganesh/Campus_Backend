@@ -805,6 +805,7 @@ app.get('/api/medical-help', async (req, res) => {
 app.post('/api/medical-help', async (req, res) => {
   try {
     const payload = req.body || {}
+    const userId = req.headers['x-user-id'] ? Number(req.headers['x-user-id']) : null
     
     // Get next ID
     const lastDonor = await MedicalHelp.findOne().sort({ id: -1 })
@@ -812,14 +813,13 @@ app.post('/api/medical-help', async (req, res) => {
     
     const donor = new MedicalHelp({
       id: nextId,
-      name: payload.fullName || payload.name || 'Anonymous',
-      bloodGroup: payload.bloodGroup || 'O+',
-      contact: payload.phoneNumber || payload.contact || '',
-      location: `${payload.department} - ${payload.year} Year`,
-      availability: 'Available',
-      lastDonated: payload.lastDonationDate || '',
-      emergencyContact: payload.phoneNumber || payload.contact || '',
-      conditions: [],
+      fullName: payload.fullName,
+      department: payload.department,
+      year: payload.year,
+      bloodGroup: payload.bloodGroup,
+      phoneNumber: payload.phoneNumber,
+      lastDonationDate: payload.lastDonationDate || '',
+      createdBy: userId,
     })
     await donor.save()
     res.status(201).json(donor)

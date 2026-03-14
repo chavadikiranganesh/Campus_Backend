@@ -62,6 +62,7 @@ interface Material {
   type: 'For Sale' | 'Donation'
   price: string
   owner: string
+  imageUrl?: string
 }
 
 export function Marketplace() {
@@ -192,16 +193,37 @@ export function Marketplace() {
             key={item.id}
             className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
           >
-            <div className="space-y-1">
-              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
-                {item.title}
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {item.course} · Semester {item.semester}
-              </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                {item.category} · {item.condition}
-              </p>
+            <div className="flex gap-3">
+              {item.imageUrl ? (
+                <img
+                  src={`${API_BASE}${item.imageUrl}`}
+                  alt={item.title}
+                  className="hidden h-24 w-24 flex-shrink-0 rounded-xl object-cover sm:block"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.style.display = 'none'
+                    const noImageDiv = target.parentElement?.querySelector('.no-image-placeholder')
+                    if (noImageDiv) {
+                      (noImageDiv as HTMLElement).style.display = 'flex'
+                    }
+                  }}
+                />
+              ) : (
+                <div className="hidden h-24 w-24 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400 dark:bg-slate-700 dark:text-slate-300 sm:flex no-image-placeholder">
+                  No image
+                </div>
+              )}
+              <div className="space-y-1">
+                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                  {item.title}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {item.course} · Semester {item.semester}
+                </p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {item.category} · {item.condition}
+                </p>
+              </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs sm:text-sm">
               <span
