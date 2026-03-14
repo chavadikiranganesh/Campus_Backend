@@ -35,7 +35,16 @@ export function Checkout() {
     setLoading(true)
 
     try {
-      // Create Razorpay order
+      // Check if payment method is Cash on Delivery
+      if (formData.paymentMethod === 'cod') {
+        // For COD, skip payment and directly place order
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate order processing
+        clearCart()
+        navigate('/payment-success')
+        return
+      }
+
+      // For Razorpay payment, create order
       const response = await fetch('https://campus-backend-1-sm36.onrender.com/api/create-order', {
         method: 'POST',
         headers: {
@@ -341,14 +350,14 @@ export function Checkout() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        Processing...
+                        {formData.paymentMethod === 'cod' ? 'Placing Order...' : 'Processing...'}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center">
                         <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
                         </svg>
-                        Pay ₹{finalTotal}
+                        {formData.paymentMethod === 'cod' ? `Place Order (₹${finalTotal})` : `Pay ₹${finalTotal}`}
                       </span>
                     )}
                   </button>
@@ -358,7 +367,7 @@ export function Checkout() {
                       <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
                       </svg>
-                      Secure payment powered by Razorpay
+                      {formData.paymentMethod === 'cod' ? 'Pay when you receive your order' : 'Secure payment powered by Razorpay'}
                     </p>
                   </div>
                 </div>
