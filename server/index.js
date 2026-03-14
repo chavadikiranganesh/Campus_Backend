@@ -13,10 +13,16 @@ const razorpay = new Razorpay({
 })
 
 // Gemini AI Setup
-console.log('Gemini API Key from env:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
+const hasGeminiKey = !!process.env.GEMINI_API_KEY
+console.log('Gemini API Key from env:', hasGeminiKey ? 'SET' : 'NOT SET')
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+let genAI = null
+let geminiModel = null
+
+if (hasGeminiKey) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+  geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+}
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -847,6 +853,20 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body || {}
 
+    const trimmed = typeof message === 'string' ? message.trim() : ''
+    if (!trimmed) {
+      return res.status(400).json({
+        reply: "Please type a question about study materials, accommodation, or how to use Campus Utility."
+      })
+    }
+
+    const fallbackReply = getChatbotReply(trimmed)
+
+    if (!geminiModel) {
+      // Gemini not configured – use rule-based chatbot
+      return res.json({ reply: fallbackReply })
+    }
+
     const systemPrompt = `
 You are a Campus Utility Assistant for SVCE students.
 
@@ -877,21 +897,25 @@ You have access to real-time data about campus resources. When students ask abou
 Be helpful, specific, and provide actionable guidance. If you don't have specific real-time data, guide them to the appropriate section of the platform.
 `
 
-    const fullPrompt = `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`
+    const fullPrompt = `${systemPrompt}\n\nUser: ${trimmed}\n\nAssistant:`
 
     const result = await geminiModel.generateContent(fullPrompt)
     const response = await result.response
-    const text = response.text()
+    const text = typeof response.text === 'function' ? response.text() : String(response || '')
+    const finalReply = text && text.trim().length > 0 ? text : fallbackReply
 
     res.json({
-      reply: text
-    });
-
+      reply: finalReply
+    })
   } catch (error) {
-    console.error('Gemini API Error:', error);
-    res.status(500).json({
-      reply: "Assistant is currently unavailable. Please try again later."
-    });
+    console.error('Gemini API Error:', error)
+    const safeMessage = (req && req.body && typeof req.body.message === 'string')
+      ? req.body.message
+      : ''
+    const backupReply = getChatbotReply(safeMessage)
+    res.status(200).json({
+      reply: backupReply
+    })
   }
 })
 
