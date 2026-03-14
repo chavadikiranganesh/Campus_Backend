@@ -40,19 +40,20 @@ app.get("/", (req, res) => {
 // Create Payment Order API
 app.post("/api/create-order", async (req, res) => {
   try {
+    const { amount, currency, receipt } = req.body;
 
     const options = {
-      amount: req.body.amount * 100,
-      currency: "INR",
-      receipt: "receipt_order"
+      amount: amount, // Amount is already in paise from frontend
+      currency: currency || "INR",
+      receipt: receipt || "receipt_order"
     };
 
     const order = await razorpay.orders.create(options);
-
     res.json(order);
 
   } catch (error) {
-    res.status(500).send(error);
+    console.error('Create order error:', error);
+    res.status(500).json({ error: 'Failed to create order' });
   }
 });
 

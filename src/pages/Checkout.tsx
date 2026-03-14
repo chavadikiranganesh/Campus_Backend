@@ -42,13 +42,17 @@ export function Checkout() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          amount: finalTotal * 100, // Convert to paise
+          amount: finalTotal * 100, // Convert to paise for Razorpay
           currency: 'INR',
           receipt: `receipt_${Date.now()}`
         })
       })
 
       const orderData = await response.json()
+
+      if (!response.ok) {
+        throw new Error(orderData.error || 'Failed to create payment order')
+      }
 
       // Initialize Razorpay
       const options = {
@@ -77,7 +81,8 @@ export function Checkout() {
       razorpay.open()
     } catch (error) {
       console.error('Payment error:', error)
-      alert('Payment failed. Please try again.')
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      alert(`Payment error: ${errorMessage}. Please try again.`)
     } finally {
       setLoading(false)
     }
