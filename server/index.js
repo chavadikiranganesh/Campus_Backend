@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const express = require('express')
 const cors = require('cors')
 const Razorpay = require("razorpay")
-const OpenAI = require('openai')
+const { GoogleGenerativeAI } = require('@google/generative-ai')
 const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
@@ -12,12 +12,11 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET
 })
 
-// OpenAI Setup
-console.log('OpenAI API Key from env:', process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET');
+// Gemini AI Setup
+console.log('Gemini API Key from env:', process.env.GEMINI_API_KEY ? 'SET' : 'NOT SET');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+const geminiModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI)
@@ -848,12 +847,7 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { message } = req.body || {}
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `
+    const systemPrompt = `
 You are a Campus Utility Assistant for SVCE students.
 
 This platform helps students with:
@@ -882,20 +876,19 @@ You have access to real-time data about campus resources. When students ask abou
 
 Be helpful, specific, and provide actionable guidance. If you don't have specific real-time data, guide them to the appropriate section of the platform.
 `
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ]
-    });
+
+    const fullPrompt = `${systemPrompt}\n\nUser: ${message}\n\nAssistant:`
+
+    const result = await geminiModel.generateContent(fullPrompt)
+    const response = await result.response
+    const text = response.text()
 
     res.json({
-      reply: completion.choices[0].message.content
+      reply: text
     });
 
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    console.error('Gemini API Error:', error);
     res.status(500).json({
       reply: "Assistant is currently unavailable. Please try again later."
     });
