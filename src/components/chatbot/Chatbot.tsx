@@ -106,6 +106,9 @@ export function Chatbot({ compact }: ChatbotProps) {
       setLoading(false)
       setIsTyping(false)
     }
+    
+    // Fallback return
+    return getInstantReply(trimmed)
   }, [getInstantReply])
 
   // Optimized send with instant feedback

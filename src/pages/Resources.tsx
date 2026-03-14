@@ -79,54 +79,72 @@ export function Resources() {
     setFormError(null)
     setSaving(true)
 
-    try {
-      let imageUrl = ''
-      if (imageFile) {
-        // For now, create a local object URL (in production, upload to server)
-        imageUrl = URL.createObjectURL(imageFile)
-      }
+    // Validation - Check required fields
+    const requiredFields = [
+      { value: title, name: 'Item title' },
+      { value: price, name: 'Price' },
+      { value: condition, name: 'Condition' },
+      { value: ownerName, name: 'Contact name' },
+      { value: imageFile, name: 'Image' }
+    ]
 
-      const payload = {
-        title,
-        category,
-        course,
-        semester,
-        condition,
-        type,
-        price: type === 'Donation' ? 'Free' : price || '₹0',
-        owner: ownerName || (user?.name ?? 'Anonymous'),
-        ownerContact,
-        imageUrl,
-        description,
-        userId: user?.id,
+    const missingFields = requiredFields.filter(({ value }) => !value)
+    
+    if (missingFields.length > 0) {
+      const fieldNames = missingFields.map(({ name }) => name).join(', ')
+      setFormError(`${fieldNames} ${missingFields.length === 1 ? 'is' : 'are'} required`)
+      setSaving(false)
+      return
+    }
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('category', category)
+      formData.append('course', course)
+      formData.append('semester', semester)
+      formData.append('condition', condition)
+      formData.append('type', type)
+      formData.append('price', type === 'Donation' ? 'Free' : price || '₹0')
+      formData.append('owner', ownerName || (user?.name ?? 'Anonymous'))
+      formData.append('ownerContact', ownerContact)
+      formData.append('description', description)
+      
+      if (imageFile) {
+        formData.append('image', imageFile)
       }
 
       const response = await fetch(`${API_BASE}/api/materials`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: formData,
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save resource.')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to add material')
       }
 
-      const created: Material = await response.json()
-      setItems((prev) => [...prev, created])
-
+      const newItem = await response.json()
+      setItems(prev => [newItem, ...prev])
+      setView('browse')
+      
+      // Reset form
       setTitle('')
       setCourse('')
       setSemester('')
       setCondition('')
-      setType('For Sale')
-      setPrice('')
       setDescription('')
-      setOwnerName(user?.name ?? '')
+      setPrice('')
       setOwnerContact('')
       setImageFile(null)
-      setView('browse')
+      setCategory('Book')
+      setType('For Sale')
+      setOwnerName(user?.name ?? '')
+      
     } catch (err) {
-      setFormError((err as Error).message)
+      console.error(err)
+      setFormError(err instanceof Error ? err.message : 'Failed to add material')
     } finally {
       setSaving(false)
     }
@@ -232,7 +250,9 @@ export function Resources() {
           <form onSubmit={handleAdd} className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <div>
-                <label className="mb-1 block text-slate-700 dark:text-slate-300">Item title</label>
+                <label className="mb-1 block text-slate-700 dark:text-slate-300">
+                  Item title <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={title}
@@ -282,7 +302,9 @@ export function Resources() {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Condition</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">
+                    Condition <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={condition}
@@ -310,14 +332,14 @@ export function Resources() {
                 </div>
                 <div className="flex-1">
                   <label className="mb-1 block text-slate-700 dark:text-slate-300">
-                    Price {type === 'Donation' && '(will be shown as Free)'}
+                    Price {type === 'Donation' && '(will be shown as Free)'} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     disabled={type === 'Donation'}
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-800"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed disabled:bg-slate-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-800"
                     placeholder="e.g. ₹400"
                   />
                 </div>
@@ -326,16 +348,32 @@ export function Resources() {
 
             <div className="space-y-2">
               <div>
-                <label className="mb-1 block text-slate-700 dark:text-slate-300">Image</label>
+                <label className="mb-1 block text-slate-700 dark:text-slate-300">
+                  Image <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:file:bg-blue-900/40 dark:file:text-blue-200"
                 />
-                {imageFile && (
-                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Selected: {imageFile.name}
+                {imageFile ? (
+                  <div className="mt-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Selected: {imageFile.name}
+                    </p>
+                    <div className="mt-2 h-20 w-20 overflow-hidden rounded-lg border border-slate-200">
+                      <img
+                        src={URL.createObjectURL(imageFile)}
+                        alt="Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                    Image is required
                   </p>
                 )}
               </div>
@@ -351,7 +389,9 @@ export function Resources() {
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Your name</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">
+                    Your name <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={ownerName}
@@ -452,12 +492,20 @@ export function Resources() {
                 <div className="flex gap-3">
                     {item.imageUrl ? (
                     <img
-                      src={item.imageUrl}
+                      src={`${API_BASE}${item.imageUrl}`}
                       alt={item.title}
                       className="hidden h-24 w-24 flex-shrink-0 rounded-xl object-cover sm:block"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement
+                        target.style.display = 'none'
+                        const noImageDiv = target.parentElement?.querySelector('.no-image-placeholder')
+                        if (noImageDiv) {
+                          (noImageDiv as HTMLElement).style.display = 'flex'
+                        }
+                      }}
                     />
                     ) : (
-                    <div className="hidden h-24 w-24 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400 dark:bg-slate-700 dark:text-slate-300 sm:flex">
+                    <div className="hidden h-24 w-24 flex-shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-400 dark:bg-slate-700 dark:text-slate-300 sm:flex no-image-placeholder">
                       No image
                     </div>
                   )}
@@ -574,9 +622,21 @@ export function Resources() {
                 <div className="grid gap-4 p-4 sm:grid-cols-[128px,1fr]">
                   <div className="h-32 w-32 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
                     {details.imageUrl ? (
-                      <img src={details.imageUrl} alt={details.title} className="h-full w-full object-cover" />
+                      <img 
+                        src={`${API_BASE}${details.imageUrl}`} 
+                        alt={details.title} 
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                          const noImageDiv = target.parentElement?.querySelector('.no-image-detail')
+                          if (noImageDiv) {
+                            (noImageDiv as HTMLElement).style.display = 'flex'
+                          }
+                        }}
+                      />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-slate-400">
+                      <div className="flex h-full w-full items-center justify-center text-xs text-slate-400 no-image-detail">
                         No image
                       </div>
                     )}

@@ -5,6 +5,9 @@ const cors = require('cors')
 const Razorpay = require("razorpay")
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 const bcrypt = require('bcrypt')
+const multer = require('multer')
+const path = require('path')
+const fs = require('fs')
 const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
@@ -15,6 +18,41 @@ const razorpay = new Razorpay({
 
 // Gemini AI Setup
 const hasGeminiKey = !!process.env.GEMINI_API_KEY
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads')
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true })
+}
+
+// Multer storage configuration
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, uploadsDir)
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, uniqueSuffix + '-' + file.originalname)
+  }
+})
+
+// File filter for images only
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true)
+  } else {
+    cb(new Error('Only image files are allowed'), false)
+  }
+}
+
+// Multer middleware
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+})
 console.log('Gemini API Key from env:', hasGeminiKey ? 'SET' : 'NOT SET')
 
 let genAI = null
@@ -34,10 +72,15 @@ mongoose.connect(process.env.MONGODB_URI)
 const app = express()
 const PORT = process.env.PORT || 5000
 
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cors({
-  origin: "*"
-}));
-app.use(express.json())
+  origin: ['https://campus-backend-1-sm36.onrender.com', 'http://localhost:5173', 'http://localhost:3000'],
+  credentials: true
+}))
+
+// Serve static files (uploads)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
 // Root route
 app.get("/", (req, res) => {
@@ -235,27 +278,49 @@ app.get('/api/materials', async (req, res) => {
   }
 })
 
-app.post('/api/materials', async (req, res) => {
+app.post('/api/materials', upload.single('image'), async (req, res) => {
   try {
     const payload = req.body || {}
     const userId = payload.userId ? Number(payload.userId) : null
+    
+    // Validation - Check required fields
+    const requiredFields = ['title', 'price', 'condition', 'owner']
+    const missingFields = requiredFields.filter(field => !payload[field])
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields 
+      })
+    }
+    
+    // Check if image was uploaded
+    if (!req.file) {
+      return res.status(400).json({ 
+        message: 'Image is required',
+        missingFields: ['image']
+      })
+    }
     
     // Get next ID
     const lastMaterial = await StudyMaterial.findOne().sort({ id: -1 })
     const nextId = lastMaterial ? lastMaterial.id + 1 : 1
     
+    // Create image URL
+    const imageUrl = `/uploads/${req.file.filename}`
+    
     const newItem = new StudyMaterial({
       id: nextId,
-      title: payload.title || 'Untitled',
+      title: payload.title,
       category: payload.category || 'Book',
       course: payload.course || 'Unknown',
       semester: payload.semester || '1',
-      condition: payload.condition || 'Good',
+      condition: payload.condition,
       type: payload.type || 'For Sale',
-      price: payload.price || '₹0',
-      owner: payload.owner || 'Anonymous',
+      price: payload.price,
+      owner: payload.owner,
       ownerContact: payload.ownerContact || '',
-      imageUrl: payload.imageUrl || '',
+      imageUrl: imageUrl,
       description: payload.description || '',
     })
     await newItem.save()
