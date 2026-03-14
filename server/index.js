@@ -105,8 +105,8 @@ app.use(cors({
     'http://localhost:3000',
     'http://127.0.0.1:5173',
     'http://127.0.0.1:3000',
-    'http://localhost:5177',
-    'http://127.0.0.1:5177'
+    'http://localhost:5175',
+    'http://127.0.0.1:5175'
   ],
   credentials: true
 }))
@@ -341,6 +341,13 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
     // Create image URL
     const imageUrl = `/uploads/${req.file.filename}`
     
+    // Find user ObjectId if userId is provided
+    let userObjectId = null
+    if (userId) {
+      const user = await User.findOne({ id: userId })
+      userObjectId = user ? user._id : null
+    }
+    
     const newItem = new StudyMaterial({
       id: nextId,
       title: payload.title,
@@ -354,6 +361,7 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
       ownerContact: payload.ownerContact || '',
       imageUrl: imageUrl,
       description: payload.description || '',
+      postedByUserId: userObjectId,
     })
     await newItem.save()
 
@@ -430,6 +438,13 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
     // Create image URL
     const imageUrl = `/uploads/lostfound/${req.file.filename}`
     
+    // Find user ObjectId if userId is provided
+    let userObjectId = null
+    if (userId) {
+      const user = await User.findOne({ id: userId })
+      userObjectId = user ? user._id : null
+    }
+    
     const item = new LostFound({
       id: nextId,
       type: payload.type || 'found',
@@ -439,7 +454,7 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
       contact: payload.contact,
       imageUrl: imageUrl,
       createdAt: new Date(),
-      postedByUserId: userId,
+      postedByUserId: userObjectId,
     })
     await item.save()
     res.status(201).json(item)
@@ -529,6 +544,13 @@ app.post('/api/study-groups', async (req, res) => {
     const lastGroup = await StudyGroup.findOne().sort({ id: -1 })
     const nextId = lastGroup ? lastGroup.id + 1 : 1
     
+    // Find user ObjectId if userId is provided
+    let userObjectId = null
+    if (userId) {
+      const user = await User.findOne({ id: userId })
+      userObjectId = user ? user._id : null
+    }
+    
     const group = new StudyGroup({
       id: nextId,
       subject: payload.subject || 'General',
@@ -537,7 +559,7 @@ app.post('/api/study-groups', async (req, res) => {
       size: payload.size || 4,
       contact: payload.contact || '',
       description: payload.description || '',
-      postedByUserId: userId,
+      createdBy: userObjectId,
       members: [],
     })
     await group.save()
@@ -634,11 +656,16 @@ app.get('/api/users/me/listings', async (req, res) => {
     const userId = Number(req.headers['x-user-id'])
     if (!userId) return res.status(401).json({ message: 'Unauthorized' })
     
-    const materials = await StudyMaterial.find({ postedByUserId: userId })
-    const lost = await LostFound.find({ postedByUserId: userId })
-    const groups = await StudyGroup.find({ postedByUserId: userId })
+    // Find user by ID to get ObjectId
+    const user = await User.findOne({ id: userId })
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    
+    const materials = await StudyMaterial.find({ postedByUserId: user._id })
+    const lost = await LostFound.find({ postedByUserId: user._id })
+    const groups = await StudyGroup.find({ createdBy: user._id })
     res.json({ materials, lostFound: lost, studyGroups: groups })
   } catch (error) {
+    console.error('Fetch listings error:', error)
     res.status(500).json({ message: 'Failed to fetch listings' })
   }
 })
@@ -697,9 +724,9 @@ app.get('/api/admin/users/:id/activity', async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' })
     
     const logins = await LoginLog.find({ userId: user._id })
-    const materials = await StudyMaterial.find({ postedByUserId: id })
-    const lost = await LostFound.find({ postedByUserId: id })
-    const groups = await StudyGroup.find({ postedByUserId: id })
+    const materials = await StudyMaterial.find({ postedByUserId: user._id })
+    const lost = await LostFound.find({ postedByUserId: user._id })
+    const groups = await StudyGroup.find({ createdBy: user._id })
     
     res.json({
       user,

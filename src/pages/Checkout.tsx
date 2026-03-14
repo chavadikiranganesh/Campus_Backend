@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { API_BASE } from '../api'
 
 // Helper function to dynamically load Razorpay script
 const loadRazorpayScript = (): Promise<boolean> => {
@@ -90,7 +91,7 @@ export function Checkout() {
         }
         
         // Save order to database
-        const response = await fetch('https://campus-backend-1-sm36.onrender.com/api/orders', {
+        const response = await fetch(`${API_BASE}/api/orders`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -108,7 +109,7 @@ export function Checkout() {
       }
 
       // For Razorpay payment, create order
-      const response = await fetch('https://campus-backend-1-sm36.onrender.com/api/create-order', {
+      const response = await fetch(`${API_BASE}/api/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -159,7 +160,7 @@ export function Checkout() {
           }
           
           // Save order to database
-          const orderResponse = await fetch('https://campus-backend-1-sm36.onrender.com/api/orders', {
+          const orderResponse = await fetch(`${API_BASE}/api/orders`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
