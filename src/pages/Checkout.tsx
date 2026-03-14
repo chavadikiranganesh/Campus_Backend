@@ -56,7 +56,7 @@ export function Checkout() {
 
       // Initialize Razorpay
       const options = {
-        key: 'rzp_test_1234567890abcdef', // Replace with your actual Razorpay key
+        key: 'rzp_test_1234567890abcdef', // Test Razorpay key
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Campus Utility',
