@@ -16,7 +16,7 @@ import { Layout } from './components/Layout'
 import { AuthPage } from './pages/Auth'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
-import ChatBot from './components/ChatBot'
+import { ChatBot } from './components/ChatBot'
 
 export default function App() {
   return (

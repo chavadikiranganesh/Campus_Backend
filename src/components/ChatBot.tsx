@@ -6,7 +6,7 @@ interface Message {
   text: string
 }
 
-export default function ChatBot() {
+export function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)

@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config({ path: '../.env' })
 const mongoose = require('mongoose')
 const express = require('express')
 const cors = require('cors')
@@ -13,6 +13,8 @@ const razorpay = new Razorpay({
 })
 
 // OpenAI Setup
+console.log('OpenAI API Key from env:', process.env.OPENAI_API_KEY ? 'SET' : 'NOT SET');
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 })
