@@ -39,6 +39,34 @@ export function Checkout() {
       if (formData.paymentMethod === 'cod') {
         // For COD, skip payment and directly place order
         await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate order processing
+        
+        // Save order to localStorage
+        const order = {
+          id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+          items: cart.map(item => ({
+            title: item.title,
+            price: item.price,
+            owner: item.owner
+          })),
+          totalAmount: finalTotal,
+          paymentMethod: 'cod',
+          status: 'Processing',
+          createdAt: new Date().toISOString(),
+          deliveryAddress: {
+            fullName: formData.fullName,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zipCode: formData.zipCode
+          }
+        }
+        
+        // Save order to localStorage (in production, this would be saved to backend)
+        const userId = 'current_user' // This would come from auth context
+        const existingOrders = JSON.parse(localStorage.getItem(`orders_${userId}`) || '[]')
+        existingOrders.push(order)
+        localStorage.setItem(`orders_${userId}`, JSON.stringify(existingOrders))
+        
         clearCart()
         navigate('/payment-success')
         return
@@ -72,7 +100,33 @@ export function Checkout() {
         description: 'Purchase of study materials',
         order_id: orderData.id,
         handler: function (_response: any) {
-          // Payment successful
+          // Payment successful - save order
+          const order = {
+            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            items: cart.map(item => ({
+              title: item.title,
+              price: item.price,
+              owner: item.owner
+            })),
+            totalAmount: finalTotal,
+            paymentMethod: 'razorpay',
+            status: 'Processing',
+            createdAt: new Date().toISOString(),
+            deliveryAddress: {
+              fullName: formData.fullName,
+              address: formData.address,
+              city: formData.city,
+              state: formData.state,
+              zipCode: formData.zipCode
+            }
+          }
+          
+          // Save order to localStorage (in production, this would be saved to backend)
+          const userId = 'current_user' // This would come from auth context
+          const existingOrders = JSON.parse(localStorage.getItem(`orders_${userId}`) || '[]')
+          existingOrders.push(order)
+          localStorage.setItem(`orders_${userId}`, JSON.stringify(existingOrders))
+          
           clearCart()
           navigate('/payment-success')
         },

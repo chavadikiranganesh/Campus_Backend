@@ -12,31 +12,30 @@ export function PaymentSuccess() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Payment Successful!</h1>
-          <p className="text-slate-600">Your order has been placed successfully.</p>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Order Placed Successfully!</h1>
+          <p className="text-slate-600">Your order has been placed and will be processed soon.</p>
         </div>
 
         <div className="mb-6">
           <div className="bg-slate-50 rounded-lg p-4">
             <h3 className="font-semibold text-slate-900 mb-2">Order Details</h3>
             <p className="text-sm text-slate-600">Order ID: #{Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
-            <p className="text-sm text-slate-600">Payment Method: Razorpay</p>
             <p className="text-sm text-slate-600">Estimated Delivery: 3-5 business days</p>
           </div>
         </div>
 
         <div className="space-y-3">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/profile')}
             className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
           >
-            Continue Shopping
+            View Order History
           </button>
           <button
-            onClick={() => navigate('/profile')}
+            onClick={() => navigate('/dashboard')}
             className="w-full bg-slate-200 text-slate-900 py-2 rounded-md hover:bg-slate-300"
           >
-            View Order History
+            Continue Shopping
           </button>
         </div>
       </div>
