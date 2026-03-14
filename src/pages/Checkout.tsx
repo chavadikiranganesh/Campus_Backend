@@ -3,6 +3,31 @@ import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
 
+// Helper function to dynamically load Razorpay script
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Check if Razorpay is already loaded
+    if ((window as any).Razorpay) {
+      resolve(true)
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    
+    script.onload = () => {
+      resolve(true)
+    }
+    
+    script.onerror = () => {
+      resolve(false)
+    }
+    
+    document.body.appendChild(script)
+  })
+}
+
 export function Checkout() {
   const { cart, clearCart } = useCart()
   const navigate = useNavigate()
@@ -159,8 +184,15 @@ export function Checkout() {
         }
       }
 
-      const razorpay = new (window as any).Razorpay(options)
-      razorpay.open()
+      // Load Razorpay script dynamically and open checkout
+      const razorpayLoaded = await loadRazorpayScript()
+      if (razorpayLoaded) {
+        const razorpay = new (window as any).Razorpay(options)
+        razorpay.open()
+      } else {
+        alert('Failed to load payment gateway. Please try again.')
+        setLoading(false)
+      }
     } catch (error) {
       console.error('Payment error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
