@@ -729,7 +729,7 @@ app.post('/api/orders', async (req, res) => {
     
     const order = new Order({
       id: orderId,
-      userId: orderData.userId || new mongoose.Types.ObjectId(), // Will be updated with real user ID
+      userId: orderData.userId, // Use the userId from frontend (as string)
       items: orderData.items,
       totalAmount: orderData.totalAmount,
       paymentMethod: orderData.paymentMethod,

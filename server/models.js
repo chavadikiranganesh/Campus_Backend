@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema({
 // Order Schema
 const orderSchema = new mongoose.Schema({
   id: { type: String, unique: true, sparse: true },
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: String, required: true }, // Changed from ObjectId to String
   items: [{
     title: { type: String, required: true },
     price: { type: Number, required: true },

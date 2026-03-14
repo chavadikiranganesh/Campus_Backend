@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
 
 export function Checkout() {
   const { cart, clearCart } = useCart()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   
   // Form states
@@ -42,6 +44,7 @@ export function Checkout() {
         
         // Save order to database
         const order = {
+          userId: user?.id, // Use actual user ID from auth context
           items: cart.map(item => ({
             title: item.title,
             price: item.price,
@@ -109,6 +112,7 @@ export function Checkout() {
         handler: async function (_response: any) {
           // Payment successful - save order to database
           const order = {
+            userId: user?.id, // Use actual user ID from auth context
             items: cart.map(item => ({
               title: item.title,
               price: item.price,
