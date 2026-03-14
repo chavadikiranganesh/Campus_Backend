@@ -134,6 +134,7 @@ export function Navbar() {
 
   const navLinks = [
     { to: '/dashboard', label: 'Home' },
+    { to: '/chat', label: 'AI Chat' },
   ]
 
   const servicesLinks = [
@@ -144,6 +145,7 @@ export function Navbar() {
     { to: '/events', label: 'Events' },
     { to: '/study-groups', label: 'Study Groups' },
     { to: '/medical-help', label: 'Medical Help' },
+    { to: '/chat', label: 'AI Chat' },
   ]
 
   return (

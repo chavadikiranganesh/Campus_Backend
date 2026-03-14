@@ -3,12 +3,18 @@ const mongoose = require('mongoose')
 const express = require('express')
 const cors = require('cors')
 const Razorpay = require("razorpay")
+const OpenAI = require('openai')
 const { User, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET
+})
+
+// OpenAI Setup
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
 })
 
 // MongoDB Connection
@@ -763,10 +769,47 @@ function getChatbotReply(messageRaw) {
   )
 }
 
-app.post('/api/chat', (req, res) => {
-  const { message } = req.body || {}
-  const reply = getChatbotReply(message || '')
-  res.json({ reply })
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message } = req.body || {}
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are a Campus Utility Assistant for SVCE students.
+
+This platform helps students with:
+- Study materials (books, notes, calculators)
+- Accommodation (hostels, PGs)
+- Lost and found items
+- Events (tech fest, workshops)
+- Study groups
+- Medical help (blood donors)
+
+Guide students on how to use the platform and help them find what they need.
+Be helpful, concise, and specific to campus life.
+`
+        },
+        {
+          role: "user",
+          content: message
+        }
+      ]
+    });
+
+    res.json({
+      reply: completion.choices[0].message.content
+    });
+
+  } catch (error) {
+    console.error('OpenAI API Error:', error);
+    res.status(500).json({
+      reply: "Assistant is currently unavailable. Please try again later."
+    });
+  }
 })
 
 app.listen(PORT, () => {
