@@ -69,7 +69,7 @@ const accommodationSchema = new mongoose.Schema({
   occupancy: String,
   facilities: [String],
   contact: String,
-  photos: [String],
+  images: [String],
   createdAt: { type: Date, default: Date.now },
 })
 

@@ -709,13 +709,10 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
     const lastAccom = await Accommodation.findOne().sort({ id: -1 })
     const nextId = lastAccom ? lastAccom.id + 1 : 1
     
-    // Handle uploaded images
-    let photos = []
+    // Handle uploaded images - get Cloudinary URLs
+    let images = []
     if (req.files && req.files.length > 0) {
-      photos = req.files.map(file => file.path)
-    } else if (payload.photos) {
-      // Fallback for manual URL input
-      photos = Array.isArray(payload.photos) ? payload.photos : [payload.photos]
+      images = req.files.map(file => file.path)
     }
     
     const newPlace = new Accommodation({
@@ -726,7 +723,7 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
       occupancy: payload.occupancy || 'N/A',
       facilities: Array.isArray(payload.facilities) ? payload.facilities : [],
       contact: payload.contact || 'Not provided',
-      photos: photos.filter(Boolean),
+      images: images, // Store Cloudinary URLs
     })
     await newPlace.save()
 

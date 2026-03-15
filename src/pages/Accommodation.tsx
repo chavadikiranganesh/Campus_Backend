@@ -13,6 +13,7 @@ const sampleAccommodations = [
     occupancy: '2 / 3 sharing',
     facilities: ['Wi‑Fi', '3 meals', 'Laundry', 'Study table'],
     contact: 'Mr. Kumar – +91 98765 43210',
+    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
   },
   {
     id: 2,
@@ -22,6 +23,7 @@ const sampleAccommodations = [
     occupancy: '2 sharing',
     facilities: ['Wi‑Fi', 'Breakfast & Dinner', '24x7 Security', 'Library room'],
     contact: 'Office – +91 91234 56780',
+    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
   },
   {
     id: 3,
@@ -31,6 +33,7 @@ const sampleAccommodations = [
     occupancy: '3 / 4 sharing',
     facilities: ['Wi‑Fi', 'Food court nearby', 'Gym access', 'Bus pickup'],
     contact: 'Reception – +91 90000 11223',
+    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
   },
 ] as const
 
@@ -42,7 +45,7 @@ interface AccommodationItem {
   occupancy: string
   facilities: string[]
   contact: string
-  photos?: string[]
+  images?: string[]
   postedByUserId?: number
 }
 
@@ -59,7 +62,6 @@ export function Accommodation() {
   const [occupancy, setOccupancy] = useState('')
   const [facilities, setFacilities] = useState('')
   const [contact, setContact] = useState('')
-  const [photoUrls, setPhotoUrls] = useState<string[]>(['', ''])
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [deleteConfirm, setDeleteConfirm] = useState<AccommodationItem | null>(null)
 
@@ -104,15 +106,6 @@ export function Accommodation() {
       photoFiles.forEach(file => {
         formData.append('images', file)
       })
-      
-      // Add manual URLs as fallback (if no files uploaded)
-      if (photoFiles.length === 0) {
-        photoUrls.forEach((url, index) => {
-          if (url.trim()) {
-            formData.append(`photos[${index}]`, url.trim())
-          }
-        })
-      }
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
         method: 'POST',
@@ -132,7 +125,6 @@ export function Accommodation() {
       setOccupancy('')
       setFacilities('')
       setContact('')
-      setPhotoUrls(['', ''])
       setPhotoFiles([])
     } catch (err) {
       setFormError((err as Error).message)
@@ -192,7 +184,7 @@ export function Accommodation() {
             key={place.id}
             className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
           >
-            <PgPhotoSlider photos={place.photos || []} name={place.name} />
+            <PgPhotoSlider photos={place.images || []} name={place.name} />
             <div className="mt-3 space-y-1">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
                 {place.name}
@@ -382,38 +374,6 @@ export function Accommodation() {
                     </div>
                   </div>
                 )}
-              </div>
-              
-              {/* Fallback URL inputs */}
-              <div className="space-y-2">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Or enter image URLs:</p>
-                {photoUrls.map((url, i) => (
-                  <div key={i} className="mb-2 flex gap-2">
-                    <input
-                      type="url"
-                      value={url}
-                      onChange={(e) => setPhotoUrls((prev) => prev.map((p, j) => (j === i ? e.target.value : p)))}
-                      className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-                      placeholder={`Photo ${i + 1} URL`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setPhotoUrls((prev) => prev.filter((_, j) => j !== i))}
-                      disabled={photoUrls.length <= 1}
-                      className="shrink-0 rounded-lg border border-slate-200 px-2 text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setPhotoUrls((prev) => [...prev, ''])}
-                  disabled={photoUrls.length >= 5}
-                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
-                >
-                  + Add photo URL
-                </button>
               </div>
             </div>
             {formError && <p className="text-xs text-rose-500 md:col-span-2">{formError}</p>}
