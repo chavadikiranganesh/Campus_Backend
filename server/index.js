@@ -5,9 +5,7 @@ const cors = require('cors')
 const Razorpay = require("razorpay")
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 const bcrypt = require('bcrypt')
-const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
+const { upload, uploadLostFound } = require('./upload')
 const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
@@ -19,64 +17,7 @@ const razorpay = new Razorpay({
 // Gemini AI Setup
 const hasGeminiKey = !!process.env.GEMINI_API_KEY
 
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(__dirname, 'uploads')
-const lostFoundDir = path.join(__dirname, 'uploads', 'lostfound')
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true })
-}
-if (!fs.existsSync(lostFoundDir)) {
-  fs.mkdirSync(lostFoundDir, { recursive: true })
-}
-
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, uploadsDir)
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, uniqueSuffix + '-' + file.originalname)
-  }
-})
-
-// File filter for images only
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true)
-  } else {
-    cb(new Error('Only image files are allowed'), false)
-  }
-}
-
-// Multer middleware
-const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-})
-
-// Multer storage for Lost & Found
-const lostFoundStorage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, lostFoundDir)
-  },
-  filename: function(req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, uniqueSuffix + '-' + file.originalname)
-  }
-})
-
-// Multer middleware for Lost & Found
-const uploadLostFound = multer({
-  storage: lostFoundStorage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
-  }
-})
+// File upload middleware is now handled by upload.js
 console.log('Gemini API Key from env:', hasGeminiKey ? 'SET' : 'NOT SET')
 
 let genAI = null
@@ -112,8 +53,7 @@ app.use(cors({
   credentials: true
 }))
 
-// Serve static files (uploads)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+// Cloudinary images are served from CDN, no static folder needed
 
 // Root route
 app.get("/", (req, res) => {
@@ -339,8 +279,8 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
     const lastMaterial = await StudyMaterial.findOne().sort({ id: -1 })
     const nextId = lastMaterial ? lastMaterial.id + 1 : 1
     
-    // Store only the filename
-    const imageFilename = req.file.filename
+    // Store the Cloudinary URL
+    const imageUrl = req.file.path
     
     // Find user ObjectId if userId is provided
     let userObjectId = null
@@ -360,7 +300,7 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
       price: payload.price,
       owner: payload.owner,
       ownerContact: payload.ownerContact || '',
-      image: imageFilename,
+      image: imageUrl,
       description: payload.description || '',
       postedByUserId: userObjectId,
     })
@@ -436,8 +376,8 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
     const lastItem = await LostFound.findOne().sort({ id: -1 })
     const nextId = lastItem ? lastItem.id + 1 : 1
     
-    // Store only the filename
-    const imageFilename = req.file.filename
+    // Store the Cloudinary URL
+    const imageUrl = req.file.path
     
     // Find user ObjectId if userId is provided
     let userObjectId = null
@@ -453,7 +393,7 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
       description: payload.description || '',
       location: payload.location,
       contact: payload.contact,
-      image: imageFilename,
+      image: imageUrl,
       createdAt: new Date(),
       postedByUserId: userObjectId,
     })
