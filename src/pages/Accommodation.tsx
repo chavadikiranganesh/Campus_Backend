@@ -92,12 +92,7 @@ export function Accommodation() {
     setFormError(null)
     setSaving(true)
     
-    console.log('=== FORM SUBMISSION DEBUG ===')
-    console.log('Photo files array:', photoFiles)
-    console.log('Photo files length:', photoFiles.length)
-    
     if (photoFiles.length === 0) {
-      console.log('No files selected!')
       setFormError('Please select at least one image')
       setSaving(false)
       return
@@ -114,32 +109,21 @@ export function Accommodation() {
       formData.append('contact', contact)
       
       // Add image files
-      photoFiles.forEach((file, index) => {
-        console.log(`Appending file ${index}:`, file.name, file.type, file.size)
+      photoFiles.forEach((file) => {
         formData.append('images', file)
       })
-      
-      console.log('FormData entries:')
-      for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value instanceof File ? `File: ${value.name}` : value)
-      }
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
         method: 'POST',
         body: formData,
       })
 
-      console.log('Response status:', response.status)
-      console.log('Response ok:', response.ok)
-
       if (!response.ok) {
         const errorData = await response.json()
-        console.log('Error response:', errorData)
         throw new Error(errorData.message || 'Failed to save accommodation.')
       }
 
       const created: AccommodationItem = await response.json()
-      console.log('Created accommodation:', created)
       setPlaces((prev) => [...prev, created])
       setName('')
       setDistance('')
@@ -149,7 +133,6 @@ export function Accommodation() {
       setContact('')
       setPhotoFiles([])
     } catch (err) {
-      console.error('Submit error:', err)
       setFormError((err as Error).message)
     } finally {
       setSaving(false)
@@ -207,14 +190,7 @@ export function Accommodation() {
       )}
 
       <section className="grid gap-4 md:grid-cols-2">
-        {places.map((place) => {
-          console.log('=== ACCOMMODATION DEBUG ===')
-          console.log('Place ID:', place.id)
-          console.log('Place name:', place.name)
-          console.log('Images field:', place.images)
-          console.log('Images length:', place.images?.length || 0)
-          
-          return (
+        {places.map((place) => (
           <article
             key={place.id}
             className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
@@ -487,11 +463,6 @@ function PgPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
   
   // Filter out empty/invalid photos and use Cloudinary URLs directly
   const validPhotos = photos.filter(photo => photo && photo.startsWith('http'))
-  
-  console.log('=== PGPHOTOSLIDER DEBUG ===')
-  console.log('Raw photos array:', photos)
-  console.log('Valid photos:', validPhotos)
-  console.log('Current index:', index)
 
   return (
     <div className="relative h-44 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">
@@ -502,7 +473,6 @@ function PgPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
             alt={`${name} photo ${index + 1}`}
             className="h-full w-full object-cover"
             onError={(e) => { 
-              console.log('Image failed to load:', validPhotos[index])
               ;(e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400' 
             }}
           />
