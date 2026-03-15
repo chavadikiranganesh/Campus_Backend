@@ -124,6 +124,13 @@ export function Checkout() {
       const orderData = await response.json()
 
       if (!response.ok) {
+        // Handle specific payment service errors
+        if (orderData.details === 'RAZORPAY_NOT_CONFIGURED') {
+          throw new Error('Online payment is currently unavailable. Please select Cash on Delivery option.')
+        }
+        if (orderData.details === 'RAZORPAY_AUTH_ERROR') {
+          throw new Error('Payment service is temporarily unavailable. Please try Cash on Delivery.')
+        }
         throw new Error(orderData.error || 'Failed to create payment order')
       }
 

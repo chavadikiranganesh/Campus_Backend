@@ -58,18 +58,51 @@ app.post("/api/create-order", async (req, res) => {
   try {
     const { amount, currency, receipt } = req.body;
 
+    // Check if Razorpay is available
+    if (!razorpay) {
+      return res.status(503).json({ 
+        error: 'Payment service is currently unavailable',
+        details: 'RAZORPAY_NOT_CONFIGURED'
+      });
+    }
+
+    // Validate required fields
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
     const options = {
       amount: amount, // Amount is already in paise from frontend
       currency: currency || "INR",
-      receipt: receipt || "receipt_order"
+      receipt: receipt || `receipt_${Date.now()}`
     };
 
+    console.log('Creating Razorpay order with options:', options);
     const order = await razorpay.orders.create(options);
+    console.log('Razorpay order created successfully:', order.id);
+    
     res.json(order);
 
   } catch (error) {
     console.error('Create order error:', error);
-    res.status(500).json({ error: 'Failed to create order' });
+    
+    // Handle specific Razorpay errors
+    if (error.statusCode === 401) {
+      res.status(500).json({ 
+        error: 'Payment gateway authentication failed. Please check Razorpay credentials.',
+        details: 'RAZORPAY_AUTH_ERROR'
+      });
+    } else if (error.statusCode === 400) {
+      res.status(400).json({ 
+        error: 'Invalid request parameters',
+        details: error.error?.description || 'Bad request'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to create payment order',
+        details: error.message || 'Internal server error'
+      });
+    }
   }
 });
 
