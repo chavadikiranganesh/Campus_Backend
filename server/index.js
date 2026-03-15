@@ -398,6 +398,42 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
   }
 })
 
+// Lost & Found DELETE
+app.delete('/api/lost-found/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const requestingUserId = req.headers['x-user-id']
+    
+    if (!requestingUserId) {
+      return res.status(401).json({ message: 'User authentication required' })
+    }
+
+    const item = await LostFound.findOne({ id })
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' })
+    }
+
+    // Check if user is admin or the original poster
+    const requestingUser = await User.findById(requestingUserId)
+    if (!requestingUser) {
+      return res.status(401).json({ message: 'Invalid user' })
+    }
+
+    const isAdmin = requestingUser.role === 'admin'
+    const isOwner = item.postedByUserId?.toString() === requestingUserId
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({ message: 'You can only delete your own items or admin access required' })
+    }
+
+    await LostFound.findOneAndDelete({ id })
+    res.json({ message: 'Item deleted successfully' })
+  } catch (error) {
+    console.error('Delete lost-found error:', error)
+    res.status(500).json({ message: 'Failed to delete item' })
+  }
+})
+
 // Events
 app.get('/api/events', async (req, res) => {
   try {
