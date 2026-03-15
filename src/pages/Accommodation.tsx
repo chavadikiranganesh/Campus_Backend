@@ -92,6 +92,18 @@ export function Accommodation() {
     event.preventDefault()
     setFormError(null)
     setSaving(true)
+    
+    console.log('=== FORM SUBMISSION DEBUG ===')
+    console.log('Photo files array:', photoFiles)
+    console.log('Photo files length:', photoFiles.length)
+    
+    if (photoFiles.length === 0) {
+      console.log('No files selected!')
+      setFormError('Please select at least one image')
+      setSaving(false)
+      return
+    }
+    
     try {
       // Create FormData for file upload
       const formData = new FormData()
@@ -103,14 +115,14 @@ export function Accommodation() {
       formData.append('contact', contact)
       
       // Add image files
-      photoFiles.forEach(file => {
-        console.log('Appending file:', file.name)
+      photoFiles.forEach((file, index) => {
+        console.log(`Appending file ${index}:`, file.name, file.type, file.size)
         formData.append('images', file)
       })
       
       console.log('FormData entries:')
       for (let [key, value] of formData.entries()) {
-        console.log(key, value)
+        console.log(`  ${key}:`, value instanceof File ? `File: ${value.name}` : value)
       }
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
@@ -118,12 +130,17 @@ export function Accommodation() {
         body: formData,
       })
 
+      console.log('Response status:', response.status)
+      console.log('Response ok:', response.ok)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.log('Error response:', errorData)
         throw new Error(errorData.message || 'Failed to save accommodation.')
       }
 
       const created: AccommodationItem = await response.json()
+      console.log('Created accommodation:', created)
       setPlaces((prev) => [...prev, created])
       setName('')
       setDistance('')
@@ -133,6 +150,7 @@ export function Accommodation() {
       setContact('')
       setPhotoFiles([])
     } catch (err) {
+      console.error('Submit error:', err)
       setFormError((err as Error).message)
     } finally {
       setSaving(false)
