@@ -373,7 +373,9 @@ export function StudyGroupFinder() {
             <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((group) => {
                 const currentMembers = group.members?.length || 0
-                const isJoined = user?.id && group.members?.includes(user.id)
+                const isJoined = user?.id && group.members?.some((member: any) => 
+                  member && (member.id === user.id || member._id?.toString() === user.id.toString())
+                )
                 const isFull = currentMembers >= group.size
                 
                 return (

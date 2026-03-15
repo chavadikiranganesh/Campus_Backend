@@ -268,6 +268,44 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Campus Utility backend is running' })
 })
 
+// Debug: Check all users (temporary)
+app.get('/api/debug/users', async (req, res) => {
+  try {
+    const users = await User.find({}, { id: 1, name: 1, email: 1, role: 1 })
+    res.json(users)
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch users' })
+  }
+})
+
+// Debug: Create missing user ID 14 (temporary)
+app.get('/api/debug/create-user-14', async (req, res) => {
+  try {
+    const existingUser = await User.findOne({ id: 14 })
+    if (existingUser) {
+      return res.json({ message: 'User ID 14 already exists' })
+    }
+    
+    const saltRounds = 10
+    const hashedPassword = await bcrypt.hash('password123', saltRounds)
+    
+    const user = new User({
+      id: 14,
+      name: 'Test User',
+      email: 'user14@test.com',
+      password: hashedPassword,
+      role: 'user',
+      createdAt: new Date(),
+      lastLoginAt: null,
+    })
+    await user.save()
+    
+    res.json({ message: 'User ID 14 created successfully', user: { id: 14, name: 'Test User', email: 'user14@test.com' } })
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to create user' })
+  }
+})
+
 // Study materials
 app.get('/api/materials', async (req, res) => {
   try {
@@ -641,22 +679,32 @@ app.delete('/api/study-groups/:id', authenticate, checkOwnership('StudyGroup', '
 app.post('/api/study-groups/:id/join', authenticate, async (req, res) => {
   try {
     const userId = req.user.id
+    const userObjectId = req.user._id
     
     const id = Number(req.params.id)
-    const group = await StudyGroup.findOne({ id })
+    const group = await StudyGroup.findOne({ id }).populate('members')
     if (!group) return res.status(404).json({ message: 'Group not found' })
 
     if (!Array.isArray(group.members)) group.members = []
-    if (group.members.includes(userId)) return res.json(group)
+    
+    // Check if user is already a member (compare ObjectIds)
+    const isAlreadyMember = group.members.some(memberId => 
+      memberId && memberId.toString() === userObjectId.toString()
+    )
+    if (isAlreadyMember) return res.json(group)
 
     if (group.members.length >= Number(group.size || 0)) {
       return res.status(400).json({ message: 'Group is full' })
     }
 
-    group.members.push(userId)
+    group.members.push(userObjectId)
     await group.save()
-    res.json(group)
+    
+    // Return populated group
+    const updatedGroup = await StudyGroup.findOne({ id }).populate('members').populate('createdBy')
+    res.json(updatedGroup)
   } catch (error) {
+    console.error('Join group error:', error)
     res.status(500).json({ message: 'Failed to join group' })
   }
 })
