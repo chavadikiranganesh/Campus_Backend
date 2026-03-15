@@ -480,7 +480,19 @@ export function Accommodation() {
 
 function PgPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
   const [index, setIndex] = useState(0)
-  const validPhotos = photos.filter(Boolean).map(photo => getImageUrl(photo))
+  
+  console.log('=== PGPHOTOSLIDER DEBUG ===')
+  console.log('Raw photos array:', photos)
+  console.log('Photos length:', photos?.length || 0)
+  
+  const validPhotos = photos.filter(Boolean).map(photo => {
+    console.log('Processing photo:', photo)
+    const url = getImageUrl(photo)
+    console.log(' getImageUrl result:', url)
+    return url
+  })
+  
+  console.log('Final validPhotos:', validPhotos)
 
   return (
     <div className="relative h-44 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">
