@@ -262,48 +262,9 @@ app.post('/api/auth/reset-password', async (req, res) => {
   }
 })
 
-// --- Routes ---
-
+// --- Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Campus Utility backend is running' })
-})
-
-// Debug: Check all users (temporary)
-app.get('/api/debug/users', async (req, res) => {
-  try {
-    const users = await User.find({}, { id: 1, name: 1, email: 1, role: 1 })
-    res.json(users)
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch users' })
-  }
-})
-
-// Debug: Create missing user ID 14 (temporary)
-app.get('/api/debug/create-user-14', async (req, res) => {
-  try {
-    const existingUser = await User.findOne({ id: 14 })
-    if (existingUser) {
-      return res.json({ message: 'User ID 14 already exists' })
-    }
-    
-    const saltRounds = 10
-    const hashedPassword = await bcrypt.hash('password123', saltRounds)
-    
-    const user = new User({
-      id: 14,
-      name: 'Test User',
-      email: 'user14@test.com',
-      password: hashedPassword,
-      role: 'user',
-      createdAt: new Date(),
-      lastLoginAt: null,
-    })
-    await user.save()
-    
-    res.json({ message: 'User ID 14 created successfully', user: { id: 14, name: 'Test User', email: 'user14@test.com' } })
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to create user' })
-  }
 })
 
 // Study materials

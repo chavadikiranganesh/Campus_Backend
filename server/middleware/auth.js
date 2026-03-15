@@ -6,22 +6,15 @@ const { User } = require('../models')
 const authenticate = async (req, res, next) => {
   const userId = req.headers['x-user-id'] || req.headers['X-User-Id']
   
-  console.log('Auth middleware - userId from header:', userId)
-  console.log('Auth middleware - userId type:', typeof userId)
-  
   if (!userId) {
-    console.log('Auth middleware - No userId provided')
     return res.status(401).json({ message: 'User authentication required' })
   }
 
   const user = await User.findOne({ id: Number(userId) })
-  console.log('Auth middleware - User found:', user ? 'YES' : 'NO')
   if (!user) {
-    console.log('Auth middleware - Invalid user ID:', userId)
     return res.status(401).json({ message: 'Invalid user' })
   }
 
-  console.log('Auth middleware - User authenticated:', user.name, user.email)
   req.user = user
   next()
 }
