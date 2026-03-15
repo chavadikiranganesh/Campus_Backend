@@ -348,7 +348,13 @@ app.post('/api/materials', upload.single('image'), authenticate, async (req, res
       console.error('Create material notification error:', e)
     }
 
-    res.status(201).json(newItem)
+    // Format response to match GET endpoint structure
+    const responseItem = {
+      ...newItem.toObject(),
+      postedByUserId: userId
+    }
+    
+    res.status(201).json(responseItem)
   } catch (error) {
     console.error('Create material error:', error)
     res.status(500).json({ message: 'Failed to create material' })
