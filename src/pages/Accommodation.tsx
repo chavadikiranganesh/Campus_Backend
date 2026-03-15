@@ -214,18 +214,7 @@ export function Accommodation() {
             key={place.id}
             className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
           >
-            {place.photos && place.photos.length > 0 ? (
-              <img
-                src={place.photos[0]}
-                alt={place.name}
-                className="h-44 w-full rounded-xl object-cover border border-slate-200"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400' }}
-              />
-            ) : (
-              <div className="h-44 w-full rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center text-slate-400 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300">
-                <span className="text-sm">No photos</span>
-              </div>
-            )}
+            <PgPhotoSlider photos={place.photos || []} name={place.name} />
             <div className="mt-3 space-y-1">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
                 {place.name}
@@ -482,6 +471,69 @@ export function Accommodation() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PgPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
+  const [index, setIndex] = useState(0)
+  
+  // Filter out empty/invalid photos and use Cloudinary URLs directly
+  const validPhotos = photos.filter(photo => photo && photo.startsWith('http'))
+  
+  console.log('=== PGPHOTOSLIDER DEBUG ===')
+  console.log('Raw photos array:', photos)
+  console.log('Valid photos:', validPhotos)
+  console.log('Current index:', index)
+
+  return (
+    <div className="relative h-44 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">
+      {validPhotos.length > 0 ? (
+        <>
+          <img
+            src={validPhotos[index]}
+            alt={`${name} photo ${index + 1}`}
+            className="h-full w-full object-cover"
+            onError={(e) => { 
+              console.log('Image failed to load:', validPhotos[index])
+              ;(e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400' 
+            }}
+          />
+          {validPhotos.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIndex((prev) => (prev - 1 + validPhotos.length) % validPhotos.length)}
+                className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-800"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                onClick={() => setIndex((prev) => (prev + 1) % validPhotos.length)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-slate-900/80 px-2 py-1 text-xs text-white hover:bg-slate-800"
+              >
+                ›
+              </button>
+              <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+                {validPhotos.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setIndex(i)}
+                    className={`h-1.5 w-1.5 rounded-full ${i === index ? 'bg-white' : 'bg-white/50'}`}
+                    aria-label={`Photo ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      ) : (
+        <div className="flex h-full items-center justify-center text-slate-400 dark:text-slate-500">
+          <span className="text-sm">No photos</span>
         </div>
       )}
     </div>
