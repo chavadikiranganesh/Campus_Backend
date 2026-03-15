@@ -13,7 +13,7 @@ const sampleAccommodations = [
     occupancy: '2 / 3 sharing',
     facilities: ['Wi‑Fi', '3 meals', 'Laundry', 'Study table'],
     contact: 'Mr. Kumar – +91 98765 43210',
-    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
+    photos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
   },
   {
     id: 2,
@@ -23,7 +23,7 @@ const sampleAccommodations = [
     occupancy: '2 sharing',
     facilities: ['Wi‑Fi', 'Breakfast & Dinner', '24x7 Security', 'Library room'],
     contact: 'Office – +91 91234 56780',
-    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
+    photos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
   },
   {
     id: 3,
@@ -33,7 +33,7 @@ const sampleAccommodations = [
     occupancy: '3 / 4 sharing',
     facilities: ['Wi‑Fi', 'Food court nearby', 'Gym access', 'Bus pickup'],
     contact: 'Reception – +91 90000 11223',
-    images: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
+    photos: ['https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400']
   },
 ] as const
 
@@ -45,7 +45,7 @@ interface AccommodationItem {
   occupancy: string
   facilities: string[]
   contact: string
-  images?: string[]
+  photos?: string[]  // Changed back to photos to match backend
   postedByUserId?: number
 }
 
@@ -203,12 +203,19 @@ export function Accommodation() {
       )}
 
       <section className="grid gap-4 md:grid-cols-2">
-        {places.map((place) => (
+        {places.map((place) => {
+          console.log('=== ACCOMMODATION DEBUG ===')
+          console.log('Place ID:', place.id)
+          console.log('Place name:', place.name)
+          console.log('Photos field:', place.photos)
+          console.log('Photos length:', place.photos?.length || 0)
+          
+          return (
           <article
             key={place.id}
             className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
           >
-            <PgPhotoSlider photos={place.images || []} name={place.name} />
+            <PgPhotoSlider photos={place.photos || []} name={place.name} />
             <div className="mt-3 space-y-1">
               <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
                 {place.name}
