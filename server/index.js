@@ -776,7 +776,30 @@ app.get('/api/users/me/listings', authenticate, async (req, res) => {
     const materials = await StudyMaterial.find({ postedByUserId: user._id })
     const lost = await LostFound.find({ postedByUserId: user._id })
     const groups = await StudyGroup.find({ createdBy: user._id })
-    res.json({ materials, lostFound: lost, studyGroups: groups })
+    
+    // Format the response to match frontend expectations
+    const formattedMaterials = materials.map(m => ({
+      id: m.id,
+      title: m.title,
+      type: m.type
+    }))
+    
+    const formattedLostFound = lost.map(l => ({
+      id: l.id,
+      title: l.title,
+      type: l.type
+    }))
+    
+    const formattedStudyGroups = groups.map(g => ({
+      id: g.id,
+      subject: g.subject
+    }))
+    
+    res.json({ 
+      materials: formattedMaterials, 
+      lostFound: formattedLostFound, 
+      studyGroups: formattedStudyGroups 
+    })
   } catch (error) {
     console.error('Fetch listings error:', error)
     res.status(500).json({ message: 'Failed to fetch listings' })

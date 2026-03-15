@@ -29,19 +29,35 @@ export function Profile() {
   const [listings, setListings] = useState<Listings | null>(null)
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const fetchListings = async () => {
+    if (!user) return
+    try {
+      const res = await fetch(`${API_BASE}/api/users/me/listings`, {
+        headers: { 'X-User-Id': String(user.id) },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setListings(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch listings:', error)
+    }
+  }
+
+  const refreshListings = async () => {
+    setRefreshing(true)
+    await fetchListings()
+    setRefreshing(false)
+  }
 
   useEffect(() => {
     if (!user) return
     const f = async () => {
       try {
         // Load listings
-        const res = await fetch(`${API_BASE}/api/users/me/listings`, {
-          headers: { 'X-User-Id': String(user.id) },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          setListings(data)
-        }
+        await fetchListings()
 
         // Load orders from database
         const ordersRes = await fetch(`${API_BASE}/api/orders/user/${user.id}`)
@@ -84,7 +100,28 @@ export function Profile() {
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-800/50">
-        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">My listings</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">My listings</h2>
+          <button
+            onClick={refreshListings}
+            disabled={refreshing}
+            className="flex items-center gap-1 px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {refreshing ? (
+              <>
+                <div className="w-3 h-3 border border-white border-t-transparent animate-spin rounded-full"></div>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </>
+            )}
+          </button>
+        </div>
         {loading && <p className="mt-2 text-sm text-slate-500">Loading…</p>}
         {!loading && listings && (
           <div className="mt-2 space-y-2 text-sm">
