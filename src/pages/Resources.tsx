@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { API_BASE } from '../api'
+import { getImageUrl } from '../utils/imageUtils'
+import { ResourceDetailsModal } from '../components/ResourceDetailsModal'
 
 const categories = ['Book', 'Instrument', 'Calculator', 'Notes'] as const
 const types = ['For Sale', 'Donation'] as const
@@ -18,7 +20,7 @@ interface Material {
   price: string
   owner: string
   ownerContact?: string
-  imageUrl?: string
+  image?: string
   description?: string
   postedByUserId?: number
 }
@@ -490,9 +492,9 @@ export function Resources() {
                 className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/80 dark:border-slate-700 dark:bg-slate-800/50 dark:shadow-slate-900/60"
               >
                 <div className="flex gap-3">
-                    {item.imageUrl ? (
+                    {item.image ? (
                     <img
-                      src={`${API_BASE}${item.imageUrl}`}
+                      src={getImageUrl(item.image)}
                       alt={item.title}
                       className="hidden h-24 w-24 flex-shrink-0 rounded-xl object-cover sm:block"
                       onError={(e) => {
@@ -588,103 +590,7 @@ export function Resources() {
           </section>
 
           {details && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
-              role="dialog"
-              aria-modal="true"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) setDetails(null)
-              }}
-            >
-              <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-                <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-4 dark:border-slate-700">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      Resource details
-                    </p>
-                    <h3 className="truncate text-base font-semibold text-slate-900 dark:text-slate-50">
-                      {details.title}
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {details.course} · Semester {details.semester}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setDetails(null)}
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                    aria-label="Close"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="grid gap-4 p-4 sm:grid-cols-[128px,1fr]">
-                  <div className="h-32 w-32 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
-                    {details.imageUrl ? (
-                      <img 
-                        src={`${API_BASE}${details.imageUrl}`} 
-                        alt={details.title} 
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                          const noImageDiv = target.parentElement?.querySelector('.no-image-detail')
-                          if (noImageDiv) {
-                            (noImageDiv as HTMLElement).style.display = 'flex'
-                          }
-                        }}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-slate-400 no-image-detail">
-                        No image
-                      </div>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2 text-xs">
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {details.category}
-                      </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                        {details.condition}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-                          details.type === 'Donation'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200'
-                        }`}
-                      >
-                        {details.type === 'Donation' ? 'Donation' : `For sale · ${details.price}`}
-                      </span>
-                    </div>
-
-                    {details.description && (
-                      <p className="text-sm text-slate-700 dark:text-slate-200">{details.description}</p>
-                    )}
-
-                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-700 dark:bg-slate-800/60">
-                      <p className="font-medium text-slate-900 dark:text-slate-50">Seller</p>
-                      <p className="mt-1 text-slate-600 dark:text-slate-300">{details.owner}</p>
-                      {details.ownerContact && (
-                        <p className="mt-1 text-slate-600 dark:text-slate-300">Contact: {details.ownerContact}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-end gap-2 border-t border-slate-200 p-4 dark:border-slate-700">
-                  <button
-                    type="button"
-                    onClick={() => setDetails(null)}
-                    className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    Done
-                  </button>
-                </div>
-              </div>
-            </div>
+            <ResourceDetailsModal item={details} onClose={() => setDetails(null)} />
           )}
 
           {deleteConfirm && (

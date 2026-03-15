@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE } from '../api'
+import { getLostFoundImageUrl } from '../utils/imageUtils'
 
 interface LostFoundItem {
   id: number
@@ -12,7 +13,7 @@ interface LostFoundItem {
   contact: string
   createdAt: string
   postedByUserId?: number
-  imageUrl?: string
+  image?: string
 }
 
 export function LostAndFound() {
@@ -322,9 +323,9 @@ export function LostAndFound() {
                 : 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20'
             }`}
           >
-            {item.imageUrl ? (
+            {item.image ? (
               <img
-                src={`${API_BASE}${item.imageUrl}`}
+                src={getLostFoundImageUrl(item.image)}
                 alt={item.title}
                 className="mb-2 h-32 w-full rounded-lg object-cover"
                 onError={(e) => {

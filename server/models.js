@@ -54,7 +54,7 @@ const studyMaterialSchema = new mongoose.Schema({
   price: String,
   owner: String,
   ownerContact: String,
-  imageUrl: String,
+  image: String,
   description: String,
   postedByUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   createdAt: { type: Date, default: Date.now },
@@ -81,7 +81,7 @@ const lostFoundSchema = new mongoose.Schema({
   description: String,
   location: String,
   contact: String,
-  imageUrl: String,
+  image: String,
   createdAt: { type: Date, default: Date.now },
   postedByUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
 })

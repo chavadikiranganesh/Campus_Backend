@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { API_BASE } from '../api'
+import { getImageUrl } from '../utils/imageUtils'
 import { useCart } from '../context/CartContext'
+import { ResourceDetailsModal } from '../components/ResourceDetailsModal'
 
 const sampleItems = [
   {
@@ -62,7 +64,9 @@ interface Material {
   type: 'For Sale' | 'Donation'
   price: string
   owner: string
-  imageUrl?: string
+  ownerContact?: string
+  image?: string
+  description?: string
 }
 
 export function Marketplace() {
@@ -73,6 +77,7 @@ export function Marketplace() {
   const [items, setItems] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<Material | null>(null)
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -194,9 +199,9 @@ export function Marketplace() {
             className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50"
           >
             <div className="flex gap-3">
-              {item.imageUrl ? (
+              {item.image ? (
                 <img
-                  src={`${API_BASE}${item.imageUrl}`}
+                  src={getImageUrl(item.image)}
                   alt={item.title}
                   className="hidden h-24 w-24 flex-shrink-0 rounded-xl object-cover sm:block"
                   onError={(e) => {
@@ -239,26 +244,30 @@ export function Marketplace() {
                 {item.owner}
               </span>
             </div>
-            {item.type === 'For Sale' && (
-              <div className="mt-2">
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() => setSelectedItem(item)}
+                className="flex-1 rounded-full border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
+              >
+                View Details
+              </button>
+              {item.type === 'For Sale' && (
                 <button
                   onClick={() => handleAddToCart(item)}
-                  className="w-full rounded-full bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
+                  className="flex-1 rounded-full bg-green-600 px-3 py-2 text-xs font-medium text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600"
                 >
                   Add to Cart
                 </button>
-              </div>
-            )}
-            {item.type === 'Donation' && (
-              <div className="mt-2">
+              )}
+              {item.type === 'Donation' && (
                 <button
                   onClick={() => handleAddToCart(item)}
-                  className="w-full rounded-full bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 transition-colors"
+                  className="flex-1 rounded-full bg-emerald-600 px-3 py-2 text-xs font-medium text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 transition-colors"
                 >
-                  🎁 Contact for Donation
+                  🎁 Contact
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </article>
         ))}
 
@@ -268,6 +277,8 @@ export function Marketplace() {
           </p>
         )}
       </section>
+
+      <ResourceDetailsModal item={selectedItem} onClose={() => setSelectedItem(null)} />
     </div>
   )
 }

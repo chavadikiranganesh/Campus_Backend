@@ -330,8 +330,8 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
     const lastMaterial = await StudyMaterial.findOne().sort({ id: -1 })
     const nextId = lastMaterial ? lastMaterial.id + 1 : 1
     
-    // Create image URL
-    const imageUrl = `/uploads/${req.file.filename}`
+    // Store only the filename
+    const imageFilename = req.file.filename
     
     // Find user ObjectId if userId is provided
     let userObjectId = null
@@ -351,7 +351,7 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
       price: payload.price,
       owner: payload.owner,
       ownerContact: payload.ownerContact || '',
-      imageUrl: imageUrl,
+      image: imageFilename,
       description: payload.description || '',
       postedByUserId: userObjectId,
     })
@@ -427,8 +427,8 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
     const lastItem = await LostFound.findOne().sort({ id: -1 })
     const nextId = lastItem ? lastItem.id + 1 : 1
     
-    // Create image URL
-    const imageUrl = `/uploads/lostfound/${req.file.filename}`
+    // Store only the filename
+    const imageFilename = req.file.filename
     
     // Find user ObjectId if userId is provided
     let userObjectId = null
@@ -444,7 +444,7 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
       description: payload.description || '',
       location: payload.location,
       contact: payload.contact,
-      imageUrl: imageUrl,
+      image: imageFilename,
       createdAt: new Date(),
       postedByUserId: userObjectId,
     })

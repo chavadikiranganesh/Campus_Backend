@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Handling Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        .image-container { margin: 10px 0; }
+        img { max-width: 200px; height: auto; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Image Handling Implementation Test</h1>
+    
+    <div class="test-section">
+        <h2>Study Materials Images</h2>
+        <div class="image-container">
+            <h3>Image 1: 1773510373391-33951326-kiran1.jpg</h3>
+            <img src="http://localhost:5000/uploads/1773510373391-33951326-kiran1.jpg" 
+                 alt="Test Image 1" 
+                 onload="this.nextElementSibling.innerHTML='✅ Loaded successfully'" 
+                 onerror="this.nextElementSibling.innerHTML='❌ Failed to load'">
+            <p class="status"></p>
+        </div>
+        
+        <div class="image-container">
+            <h3>Image 2: 1773510940595-879954625-favicon.png</h3>
+            <img src="http://localhost:5000/uploads/1773510940595-879954625-favicon.png" 
+                 alt="Test Image 2" 
+                 onload="this.nextElementSibling.innerHTML='✅ Loaded successfully'" 
+                 onerror="this.nextElementSibling.innerHTML='❌ Failed to load'">
+            <p class="status"></p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Lost & Found Images</h2>
+        <div class="image-container">
+            <h3>Lost & Found 1: 1773510993560-16071640-favicon.png</h3>
+            <img src="http://localhost:5000/uploads/lostfound/1773510993560-16071640-favicon.png" 
+                 alt="Lost & Found Image 1" 
+                 onload="this.nextElementSibling.innerHTML='✅ Loaded successfully'" 
+                 onerror="this.nextElementSibling.innerHTML='❌ Failed to load'">
+            <p class="status"></p>
+        </div>
+        
+        <div class="image-container">
+            <h3>Lost & Found 2: 1773511253173-418932536-WhatsApp Image 2025-03-31 at 11.35.00_a48cb110.jpg</h3>
+            <img src="http://localhost:5000/uploads/lostfound/1773511253173-418932536-WhatsApp Image 2025-03-31 at 11.35.00_a48cb110.jpg" 
+                 alt="Lost & Found Image 2" 
+                 onload="this.nextElementSibling.innerHTML='✅ Loaded successfully'" 
+                 onerror="this.nextElementSibling.innerHTML='❌ Failed to load'">
+            <p class="status"></p>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Frontend Helper Function Test</h2>
+        <div id="helper-test"></div>
+    </div>
+    
+    <script>
+        // Test the helper function logic
+        const API_BASE = 'http://localhost:5000';
+        
+        function getImageUrl(filename) {
+            if (!filename) {
+                return '/placeholder.png';
+            }
+            return `${API_BASE}/uploads/${filename}`;
+        }
+        
+        function getLostFoundImageUrl(filename) {
+            if (!filename) {
+                return '/placeholder.png';
+            }
+            return `${API_BASE}/uploads/lostfound/${filename}`;
+        }
+        
+        // Test helper functions
+        const helperTest = document.getElementById('helper-test');
+        
+        const tests = [
+            { name: 'Study Material URL', fn: getImageUrl, filename: '1773510373391-33951326-kiran1.jpg' },
+            { name: 'Lost & Found URL', fn: getLostFoundImageUrl, filename: '1773510993560-16071640-favicon.png' },
+            { name: 'Fallback (no filename)', fn: getImageUrl, filename: null }
+        ];
+        
+        tests.forEach(test => {
+            const url = test.fn(test.filename);
+            const div = document.createElement('div');
+            div.innerHTML = `<strong>${test.name}:</strong> ${url}`;
+            helperTest.appendChild(div);
+        });
+    </script>
+</body>
+</html>
