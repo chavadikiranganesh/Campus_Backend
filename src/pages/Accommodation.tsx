@@ -405,6 +405,14 @@ export function Accommodation() {
                     </button>
                   </div>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setPhotoUrls((prev) => [...prev, ''])}
+                  disabled={photoUrls.length >= 5}
+                  className="rounded-lg border border-slate-200 px-3 py-1 text-xs text-slate-500 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-700"
+                >
+                  + Add photo URL
+                </button>
               </div>
             </div>
             {formError && <p className="text-xs text-rose-500 md:col-span-2">{formError}</p>}
