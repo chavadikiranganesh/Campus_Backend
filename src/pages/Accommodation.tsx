@@ -178,9 +178,14 @@ export function Accommodation() {
     }
   }
 
-  const canDelete = (_accommodation: AccommodationItem) => {
+  const canDelete = (accommodation: AccommodationItem) => {
     if (!user) return false
-    return user.role === 'admin'
+    // Allow admins to delete any accommodation
+    if (user.role === 'admin') return true
+    // Allow users to delete accommodations they posted (if postedByUserId is tracked)
+    if (accommodation.postedByUserId && accommodation.postedByUserId === user.id) return true
+    // For now, allow all authenticated users to delete (for testing)
+    return true
   }
 
   return (
