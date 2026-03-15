@@ -70,6 +70,7 @@ const accommodationSchema = new mongoose.Schema({
   facilities: [String],
   contact: String,
   images: [String],
+  postedByUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   createdAt: { type: Date, default: Date.now },
 })
 

@@ -32,6 +32,7 @@ export function LostAndFound() {
   const [contact, setContact] = useState(user?.email ?? '')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<LostFoundItem | null>(null)
+  const [editItem, setEditItem] = useState<LostFoundItem | null>(null)
 
   useEffect(() => {
     const fetchItems = async () => {
@@ -116,6 +117,69 @@ export function LostAndFound() {
     }
   }
 
+  const handleEdit = (item: LostFoundItem) => {
+    setEditItem(item)
+    setTitle(item.title)
+    setType(item.type)
+    setDescription(item.description)
+    setLocation(item.location)
+    setContact(item.contact)
+    setImageFile(null)
+    setShowForm(true)
+  }
+
+  const handleUpdate = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!editItem || !user) return
+
+    setFormError(null)
+    setSaving(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('type', type)
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('location', location)
+      formData.append('contact', contact || user?.email)
+      
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
+
+      const res = await fetch(`${API_BASE}/api/lost-found/${editItem.id}`, {
+        method: 'PUT',
+        headers: { 'x-user-id': String(user.id) },
+        body: formData,
+      })
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to update')
+      }
+      
+      const updated = await res.json()
+      setItems((prev) => prev.map(item => item.id === editItem.id ? updated : item))
+      resetForm()
+      setShowForm(false)
+    } catch (error) {
+      console.error('Lost & Found update error:', error)
+      setFormError((error as Error).message || 'Could not update. Try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetForm = () => {
+    setTitle('')
+    setDescription('')
+    setLocation('')
+    setContact(user?.email ?? '')
+    setImageFile(null)
+    setEditItem(null)
+    setFormError(null)
+  }
+
   const handleDelete = async (item: LostFoundItem) => {
     if (!user) return
 
@@ -142,6 +206,11 @@ export function LostAndFound() {
       console.error('Delete error:', err)
       alert((err as Error).message)
     }
+  }
+
+  const canEdit = (item: LostFoundItem) => {
+    if (!user) return false
+    return user.role === 'admin' || item.postedByUserId === user.id
   }
 
   const canDelete = (item: LostFoundItem) => {
@@ -172,7 +241,7 @@ export function LostAndFound() {
         </div>
         <button
           type="button"
-          onClick={() => setShowForm(true)}
+          onClick={() => { setShowForm(true); resetForm(); }}
           className="inline-flex items-center justify-center rounded-full bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 dark:bg-amber-500 dark:hover:bg-amber-400"
         >
           + Report item
@@ -207,8 +276,10 @@ export function LostAndFound() {
 
       {showForm && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Report Lost or Found</h2>
-          <form onSubmit={handleSubmit} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+            {editItem ? 'Edit Lost or Found Item' : 'Report Lost or Found'}
+          </h2>
+          <form onSubmit={editItem ? handleUpdate : handleSubmit} className="mt-3 grid gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Type</label>
               <select
@@ -301,7 +372,7 @@ export function LostAndFound() {
             <div className="flex gap-2 sm:col-span-2">
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => { setShowForm(false); resetForm(); }}
                 className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-300"
               >
                 Cancel
@@ -311,7 +382,7 @@ export function LostAndFound() {
                 disabled={saving}
                 className="rounded-full bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50 dark:bg-amber-500"
               >
-                {saving ? 'Posting…' : 'Post'}
+                {saving ? (editItem ? 'Updating…' : 'Posting…') : (editItem ? 'Update' : 'Post')}
               </button>
             </div>
           </form>
@@ -359,8 +430,17 @@ export function LostAndFound() {
               📍 {item.location} · {item.createdAt}
             </p>
             <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">Contact: {item.contact}</p>
-            {canDelete(item) && (
-              <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-2">
+              {canEdit(item) && (
+                <button
+                  type="button"
+                  onClick={() => handleEdit(item)}
+                  className="rounded-full bg-amber-500 px-3 py-1 text-xs font-medium text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700"
+                >
+                  Edit
+                </button>
+              )}
+              {canDelete(item) && (
                 <button
                   type="button"
                   onClick={() => setDeleteConfirm(item)}
@@ -368,8 +448,8 @@ export function LostAndFound() {
                 >
                   Delete
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </article>
         ))}
       </section>

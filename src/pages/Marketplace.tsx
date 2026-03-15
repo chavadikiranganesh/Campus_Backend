@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { API_BASE } from '../api'
 import { getImageUrl } from '../utils/imageUtils'
 import { useCart } from '../context/CartContext'
@@ -67,9 +68,11 @@ interface Material {
   ownerContact?: string
   image?: string
   description?: string
+  postedByUserId?: number
 }
 
 export function Marketplace() {
+  const { user } = useAuth()
   const { addToCart } = useCart()
   const [category, setCategory] = useState<(typeof categories)[number]>('All')
   const [type, setType] = useState<(typeof types)[number]>('All')
@@ -78,6 +81,7 @@ export function Marketplace() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<Material | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<Material | null>(null)
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -114,6 +118,38 @@ export function Marketplace() {
 
     return matchesCategory && matchesType && matchesQuery
   })
+
+  const handleDelete = async (item: Material) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`${API_BASE}/api/materials/${item.id}`, {
+        method: 'DELETE',
+        headers: { 'X-User-Id': String(user.id) },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to delete item')
+      }
+
+      setItems((prev) => prev.filter((i) => i.id !== item.id))
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Delete error:', err)
+      alert((err as Error).message)
+    }
+  }
+
+  const canEdit = (item: Material) => {
+    if (!user) return false
+    return user.role === 'admin' || item.postedByUserId === user.id
+  }
+
+  const canDelete = (item: Material) => {
+    if (!user) return false
+    return user.role === 'admin' || item.postedByUserId === user.id
+  }
 
   const handleAddToCart = (item: Material) => {
     if (item.type === 'Donation') {
@@ -251,6 +287,14 @@ export function Marketplace() {
               >
                 View Details
               </button>
+              {canEdit(item) && (
+                <button
+                  onClick={() => window.alert('Edit functionality will redirect to Resources page for editing')}
+                  className="flex-1 rounded-full bg-amber-600 px-3 py-2 text-xs font-medium text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
+                >
+                  Edit
+                </button>
+              )}
               {item.type === 'For Sale' && (
                 <button
                   onClick={() => handleAddToCart(item)}
@@ -267,6 +311,14 @@ export function Marketplace() {
                   🎁 Contact
                 </button>
               )}
+              {canDelete(item) && (
+                <button
+                  onClick={() => setDeleteConfirm(item)}
+                  className="flex-1 rounded-full bg-rose-600 px-3 py-2 text-xs font-medium text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           </article>
         ))}
@@ -279,6 +331,52 @@ export function Marketplace() {
       </section>
 
       <ResourceDetailsModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null)
+          }}
+        >
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+            <div className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
+                  <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Item</h3>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(deleteConfirm)}
+                  className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

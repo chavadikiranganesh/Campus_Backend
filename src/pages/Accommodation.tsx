@@ -63,6 +63,8 @@ export function Accommodation() {
   const [contact, setContact] = useState('')
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [deleteConfirm, setDeleteConfirm] = useState<AccommodationItem | null>(null)
+  const [editItem, setEditItem] = useState<AccommodationItem | null>(null)
+  const [showEditForm, setShowEditForm] = useState(false)
 
   useEffect(() => {
     const fetchAccommodations = async () => {
@@ -107,6 +109,7 @@ export function Accommodation() {
       formData.append('occupancy', occupancy)
       formData.append('facilities', facilities)
       formData.append('contact', contact)
+      formData.append('userId', String(user?.id || ''))
       
       // Add image files
       photoFiles.forEach((file) => {
@@ -139,6 +142,73 @@ export function Accommodation() {
     }
   }
 
+  const handleEdit = (accommodation: AccommodationItem) => {
+    setEditItem(accommodation)
+    setName(accommodation.name)
+    setDistance(accommodation.distance)
+    setRent(accommodation.rent)
+    setOccupancy(accommodation.occupancy)
+    setFacilities(accommodation.facilities.join(', '))
+    setContact(accommodation.contact)
+    setPhotoFiles([])
+    setShowEditForm(true)
+  }
+
+  const handleUpdate = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!editItem || !user) return
+
+    setFormError(null)
+    setSaving(true)
+    
+    try {
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('distance', distance)
+      formData.append('rent', rent)
+      formData.append('occupancy', occupancy)
+      formData.append('facilities', facilities)
+      formData.append('contact', contact)
+      
+      // Add image files if any
+      photoFiles.forEach((file) => {
+        formData.append('images', file)
+      })
+
+      const response = await fetch(`${API_BASE}/api/accommodations/${editItem.id}`, {
+        method: 'PUT',
+        headers: { 'X-User-Id': String(user.id) },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to update accommodation.')
+      }
+
+      const updated = await response.json()
+      setPlaces((prev) => prev.map(place => place.id === editItem.id ? updated : place))
+      resetForm()
+      setShowEditForm(false)
+    } catch (err) {
+      setFormError((err as Error).message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetForm = () => {
+    setName('')
+    setDistance('')
+    setRent('')
+    setOccupancy('')
+    setFacilities('')
+    setContact('')
+    setPhotoFiles([])
+    setEditItem(null)
+    setFormError(null)
+  }
+
   const handleDelete = async (accommodation: AccommodationItem) => {
     if (!user) return
 
@@ -161,14 +231,14 @@ export function Accommodation() {
     }
   }
 
+  const canEdit = (accommodation: AccommodationItem) => {
+    if (!user) return false
+    return user.role === 'admin' || accommodation.postedByUserId === user.id
+  }
+
   const canDelete = (accommodation: AccommodationItem) => {
     if (!user) return false
-    // Allow admins to delete any accommodation
-    if (user.role === 'admin') return true
-    // Allow users to delete accommodations they posted (if postedByUserId is tracked)
-    if (accommodation.postedByUserId && accommodation.postedByUserId === user.id) return true
-    // For now, allow all authenticated users to delete (for testing)
-    return true
+    return user.role === 'admin' || accommodation.postedByUserId === user.id
   }
 
   return (
@@ -213,8 +283,17 @@ export function Accommodation() {
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-500">Contact: {place.contact}</p>
             </div>
-            {canDelete(place) && (
-              <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex justify-end gap-2">
+              {canEdit(place) && (
+                <button
+                  type="button"
+                  onClick={() => handleEdit(place)}
+                  className="rounded-full bg-amber-500 px-3 py-1 text-xs font-medium text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700"
+                >
+                  Edit
+                </button>
+              )}
+              {canDelete(place) && (
                 <button
                   type="button"
                   onClick={() => setDeleteConfirm(place)}
@@ -222,8 +301,8 @@ export function Accommodation() {
                 >
                   Delete
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </article>
         ))}
       </section>
@@ -449,6 +528,185 @@ export function Accommodation() {
                   Delete
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditForm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setShowEditForm(false)
+          }}
+        >
+          <div className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Edit Accommodation</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowEditForm(false)}
+                  className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="PG or hostel name"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">Distance</label>
+                    <input
+                      type="text"
+                      value={distance}
+                      onChange={(e) => setDistance(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="e.g. 0.8 km from campus"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">Rent</label>
+                    <input
+                      type="text"
+                      value={rent}
+                      onChange={(e) => setRent(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="e.g. ₹7,500 / month"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">Occupancy</label>
+                    <input
+                      type="text"
+                      value={occupancy}
+                      onChange={(e) => setOccupancy(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="e.g. 2 / 3 sharing"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">Facilities (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={facilities}
+                      onChange={(e) => setFacilities(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="Wi‑Fi, 3 meals, Laundry"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">Contact</label>
+                    <input
+                      type="text"
+                      value={contact}
+                      onChange={(e) => setContact(e.target.value)}
+                      required
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      placeholder="Name and phone"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block text-slate-700 dark:text-slate-300">
+                      Update Photos (optional - leave empty to keep existing)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || [])
+                        const validFiles = files.filter(file => {
+                          if (!file) return false
+                          const isValidType = file.type.startsWith('image/')
+                          const isValidSize = file.size <= 5 * 1024 * 1024
+                          if (!isValidType) {
+                            alert(`${file.name} is not a valid image file`)
+                            return false
+                          }
+                          if (!isValidSize) {
+                            alert(`${file.name} is too large (max 5MB)`)
+                            return false
+                          }
+                          return true
+                        })
+                        
+                        if (validFiles.length > 5) {
+                          alert('Maximum 5 images allowed')
+                          setPhotoFiles(validFiles.slice(0, 5))
+                        } else {
+                          setPhotoFiles(validFiles)
+                        }
+                      }}
+                      className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:file:bg-blue-900/40 dark:file:text-blue-200"
+                    />
+                    
+                    {photoFiles.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          New images selected: {photoFiles.length}
+                        </p>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {photoFiles.filter(f => f).map((file, index) => (
+                            <div key={index} className="relative group">
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt={`New preview ${index + 1}`}
+                                className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setPhotoFiles(prev => prev.filter((_, i) => i !== index))}
+                                className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {formError && <p className="text-xs text-rose-500 dark:text-rose-400">{formError}</p>}
+                
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditForm(false)}
+                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 dark:bg-blue-500"
+                  >
+                    {saving ? 'Updating…' : 'Update Accommodation'}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

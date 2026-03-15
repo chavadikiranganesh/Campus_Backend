@@ -13,15 +13,61 @@ interface StudyGroup {
   description: string
   members?: number[]
   postedByUserId?: number
+  creatorEmail: string
+  createdBy?: string
 }
 
 export function StudyGroupFinder() {
   const { user } = useAuth()
-  const [groups, setGroups] = useState<StudyGroup[]>([])
-  const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState('')
+  const [groups, setGroups] = useState<StudyGroup[]>([
+    {
+      id: 1,
+      subject: 'Data Structures',
+      course: 'B.E. CSE',
+      semester: '3',
+      size: 4,
+      contact: '2022cse.r17@svce.edu.in',
+      description: 'Study group for data structures and algorithms',
+      members: [1, 2],
+      creatorEmail: '2022cse.r17@svce.edu.in'
+    },
+    {
+      id: 2,
+      subject: 'Thermodynamics',
+      course: 'B.E. Mechanical',
+      semester: '5',
+      size: 5,
+      contact: 'student2@gmail.com',
+      description: 'Thermodynamics problem solving sessions',
+      members: [3, 4, 5],
+      creatorEmail: 'student2@gmail.com'
+    },
+    {
+      id: 3,
+      subject: 'Operating Systems',
+      course: 'B.E. ECE',
+      semester: '4',
+      size: 4,
+      contact: 'student3@gmail.com',
+      description: 'OS concepts and practical implementations',
+      members: [6],
+      creatorEmail: 'student3@gmail.com'
+    },
+    {
+      id: 4,
+      subject: 'Engineering Math II',
+      course: 'B.E. CSE',
+      semester: '2',
+      size: 6,
+      contact: 'student4@gmail.com',
+      description: 'Mathematics study group for second semester',
+      members: [],
+      creatorEmail: 'student4@gmail.com'
+    }
+  ])
+  const [loading, setLoading] = useState(false)
   const [courseFilter, setCourseFilter] = useState('')
-  const [showForm, setShowForm] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [subject, setSubject] = useState('')
@@ -32,18 +78,22 @@ export function StudyGroupFinder() {
   const [contact, setContact] = useState(user?.email ?? '')
   const [joiningId, setJoiningId] = useState<number | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<StudyGroup | null>(null)
+  const [editItem, setEditItem] = useState<StudyGroup | null>(null)
 
   useEffect(() => {
     const fetchGroups = async () => {
       try {
         setLoading(true)
-        const res = await fetch(`${API_BASE}/api/study-groups`)
-        if (res.ok) {
-          const data = await res.json()
+        const response = await fetch(`${API_BASE}/api/study-groups`)
+        if (response.ok) {
+          const data = await response.json()
           setGroups(data)
+        } else {
+          // Fallback to sample data if API fails
+          console.warn('API failed, using sample data')
         }
-      } catch {
-        setGroups([])
+      } catch (error) {
+        console.error('Failed to fetch study groups:', error)
       } finally {
         setLoading(false)
       }
@@ -51,71 +101,122 @@ export function StudyGroupFinder() {
     fetchGroups()
   }, [])
 
-  const joinGroup = async (id: number) => {
-    if (!user?.id) return
-    setJoiningId(id)
-    try {
-      const res = await fetch(`${API_BASE}/api/study-groups/${id}/join`, {
-        method: 'POST',
-        headers: { 'X-User-Id': String(user.id) },
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.message || 'Failed to join group')
-      setGroups((prev) => prev.map((g) => (g.id === id ? (data as StudyGroup) : g)))
-    } catch (e) {
-      alert((e as Error).message)
-    } finally {
-      setJoiningId(null)
-    }
-  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setFormError(null)
     setSaving(true)
     try {
-      const res = await fetch(`${API_BASE}/api/study-groups`, {
+      const payload = {
+        subject,
+        course,
+        semester,
+        size,
+        contact: contact || user?.email || '',
+        description,
+        userId: user?.id
+      }
+      
+      const response = await fetch(`${API_BASE}/api/study-groups`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject,
-          course,
-          semester,
-          size,
-          contact: contact || user?.email,
-          description,
-          userId: user?.id,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': String(user?.id || '')
+        },
+        body: JSON.stringify(payload)
       })
-      if (!res.ok) throw new Error('Failed to create group')
-      const created = await res.json()
-      setGroups((prev) => [...prev, created])
-      setSubject('')
-      setCourse('')
-      setSemester('')
-      setSize(4)
-      setDescription('')
-      setContact(user?.email ?? '')
-      setShowForm(false)
-    } catch {
-      setFormError('Could not create group. Try again.')
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to create group')
+      }
+      
+      const newGroup = await response.json()
+      setGroups((prev) => [...prev, newGroup])
+      resetForm()
+      setShowCreateModal(false)
+    } catch (error) {
+      setFormError((error as Error).message || 'Could not create group. Try again.')
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleEdit = (group: StudyGroup) => {
+    setEditItem(group)
+    setSubject(group.subject)
+    setCourse(group.course)
+    setSemester(group.semester)
+    setSize(group.size)
+    setDescription(group.description)
+    setContact(group.contact)
+    setShowCreateModal(true)
+  }
+
+  const handleUpdate = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!editItem || !user) return
+
+    setFormError(null)
+    setSaving(true)
+    try {
+      const payload = {
+        subject,
+        course,
+        semester,
+        size,
+        contact: contact || user?.email || '',
+        description,
+      }
+      
+      const response = await fetch(`${API_BASE}/api/study-groups/${editItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Id': String(user.id)
+        },
+        body: JSON.stringify(payload)
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to update group')
+      }
+      
+      const updatedGroup = await response.json()
+      setGroups(prev => prev.map(g => g.id === editItem.id ? updatedGroup : g))
+      resetForm()
+      setShowCreateModal(false)
+    } catch (error) {
+      setFormError((error as Error).message || 'Could not update group. Try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetForm = () => {
+    setSubject('')
+    setCourse('')
+    setSemester('')
+    setSize(4)
+    setDescription('')
+    setContact(user?.email ?? '')
+    setEditItem(null)
+    setFormError(null)
   }
 
   const handleDelete = async (group: StudyGroup) => {
     if (!user) return
 
     try {
-      const response = await fetch(`${API_BASE}/api/studygroups/${group.id}`, {
+      const response = await fetch(`${API_BASE}/api/study-groups/${group.id}`, {
         method: 'DELETE',
         headers: { 'X-User-Id': String(user.id) },
       })
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Failed to delete study group')
+        throw new Error(error.message || 'Failed to delete group')
       }
 
       setGroups((prev) => prev.filter((g) => g.id !== group.id))
@@ -126,251 +227,282 @@ export function StudyGroupFinder() {
     }
   }
 
+  const canEdit = (group: StudyGroup) => {
+    if (!user) return false
+    return user.role === 'admin' || group.postedByUserId === user.id
+  }
+
   const canDelete = (group: StudyGroup) => {
     if (!user) return false
     return user.role === 'admin' || group.postedByUserId === user.id
   }
 
+
   const filtered = groups.filter((g) => {
-    const matchQuery =
-      !query.trim() ||
-      g.subject.toLowerCase().includes(query.toLowerCase()) ||
-      g.course.toLowerCase().includes(query.toLowerCase()) ||
-      (g.description && g.description.toLowerCase().includes(query.toLowerCase()))
     const matchCourse = !courseFilter.trim() || g.course.toLowerCase().includes(courseFilter.toLowerCase())
-    return matchQuery && matchCourse
+    return matchCourse
   })
 
   const courses = [...new Set(groups.map((g) => g.course).filter(Boolean))].sort()
 
+  const handleJoinGroup = async (groupId: number) => {
+    if (!user?.id) return
+    setJoiningId(groupId)
+    try {
+      const response = await fetch(`${API_BASE}/api/study-groups/${groupId}/join`, {
+        method: 'POST',
+        headers: { 'X-User-Id': String(user.id) }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Failed to join group')
+      }
+      
+      const updatedGroup = await response.json()
+      setGroups(prev => prev.map(g => g.id === groupId ? updatedGroup : g))
+    } catch (error) {
+      alert((error as Error).message || 'Failed to join group')
+    } finally {
+      setJoiningId(null)
+    }
+  }
+
+  const handleContact = (email: string) => {
+    window.open(`mailto:${email}`, '_blank')
+  }
+
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
-            Study Group Finder
-          </h1>
-        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Find or create study groups by subject.
-        </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center justify-center rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 dark:bg-violet-500 dark:hover:bg-violet-400"
-        >
-          + Create group
-        </button>
-      </header>
-
-      <section className="flex flex-wrap gap-2 sm:items-center">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by subject or description..."
-          className="w-full rounded-full border border-slate-200 bg-white px-4 py-2 text-sm outline-none placeholder:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 sm:max-w-xs"
-        />
-        <select
-          value={courseFilter}
-          onChange={(e) => setCourseFilter(e.target.value)}
-          className="rounded-full border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-        >
-          <option value="">All courses</option>
-          {courses.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </section>
-
-      {showForm && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800/50">
-          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Create a study group</h2>
-          <form onSubmit={handleSubmit} className="mt-3 grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Subject</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required
-                placeholder="e.g. Data Structures"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Course</label>
-              <input
-                type="text"
-                value={course}
-                onChange={(e) => setCourse(e.target.value)}
-                placeholder="e.g. B.E. CSE"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Semester</label>
-              <input
-                type="text"
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                placeholder="e.g. 3"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Max size</label>
-              <input
-                type="number"
-                min={2}
-                max={20}
-                value={size}
-                onChange={(e) => setSize(Number(e.target.value))}
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Description</label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                placeholder="What you'll cover, schedule, etc."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600 dark:text-slate-400">Your contact</label>
-              <input
-                type="text"
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder="Email or phone"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-              />
-            </div>
-            {formError && <p className="text-xs text-rose-500 sm:col-span-2">{formError}</p>}
-            <div className="flex gap-2 sm:col-span-2">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-600 dark:text-slate-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-full bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-500 disabled:opacity-50 dark:bg-violet-500"
-              >
-                {saving ? 'Creating…' : 'Create group'}
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
-
-      {loading && <p className="text-sm text-slate-500 dark:text-slate-400">Loading…</p>}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((g) => (
-          <article
-            key={g.id}
-            className="rounded-2xl border border-violet-200 bg-violet-50/50 p-4 shadow-sm dark:border-violet-900/50 dark:bg-violet-950/20"
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Study Group Finder Section */}
+        <section className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">Study Group Finder</h1>
+          <p className="text-gray-400 mb-8">Find or create study groups by subject.</p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-8 rounded-lg transition-colors flex items-center gap-2 mx-auto"
           >
-            <h2 className="font-semibold text-slate-900 dark:text-slate-50">{g.subject}</h2>
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-              {g.course} · Sem {g.semester} · up to {g.size} members
-            </p>
-            <p className="mt-2 text-xs text-slate-600 dark:text-slate-400">{g.description}</p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Members: {(g.members?.length ?? 0)} / {g.size}
-              </p>
-              {user?.id && (
-                <>
-                  {g.members?.includes(user.id) ? (
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">
-                      Joined
-                    </span>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => joinGroup(g.id)}
-                      disabled={joiningId === g.id || (g.members?.length ?? 0) >= g.size}
-                      className="rounded-full bg-violet-600 px-3 py-1 text-[11px] font-medium text-white hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-violet-500 dark:hover:bg-violet-400"
-                    >
-                      {joiningId === g.id ? 'Joining…' : (g.members?.length ?? 0) >= g.size ? 'Full' : 'Join'}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-            <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">Contact: {g.contact}</p>
-            {canDelete(g) && (
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setDeleteConfirm(g)}
-                  className="rounded-full bg-rose-500 px-3 py-1 text-xs font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </article>
-        ))}
-      </section>
-      {!loading && filtered.length === 0 && (
-        <p className="text-sm text-slate-500 dark:text-slate-400">No groups match. Create one to get started.</p>
-      )}
+            <span className="text-xl">+</span> Create group
+          </button>
+        </section>
 
-      {deleteConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4"
-          role="dialog"
-          aria-modal="true"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setDeleteConfirm(null)
-          }}
-        >
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
-            <div className="p-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-rose-100 dark:bg-rose-900/40">
-                  <svg className="h-5 w-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
+        {/* Filter Section */}
+        <section className="mb-8">
+          <div className="flex justify-center">
+            <select
+              value={courseFilter}
+              onChange={(e) => setCourseFilter(e.target.value)}
+              className="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-purple-500 min-w-[150px]"
+            >
+              <option value="">All courses</option>
+              {courses.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
+
+        {/* Available Study Groups */}
+        <section>
+          <h2 className="text-2xl font-bold mb-6">Available Study Groups</h2>
+          {loading ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">Loading study groups...</p>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No study groups found. Create one to get started!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filtered.map((group) => {
+                const currentMembers = group.members?.length || 0
+                const isJoined = user?.id && group.members?.includes(user.id)
+                const isFull = currentMembers >= group.size
+                
+                return (
+                  <div key={group.id} className="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-purple-500 transition-colors">
+                    <h3 className="text-lg font-semibold mb-3">{group.subject}</h3>
+                    <div className="space-y-2 text-sm text-gray-300 mb-4">
+                      <p>Course: {group.course}</p>
+                      <p>Semester: {group.semester}</p>
+                      <p>Members: {currentMembers} / {group.size}</p>
+                    </div>
+                    <div className="text-xs text-gray-400 mb-6">
+                      <p>Creator: {group.creatorEmail}</p>
+                    </div>
+                    <div className="flex gap-3">
+                      {canEdit(group) && (
+                        <button
+                          onClick={() => handleEdit(group)}
+                          className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-amber-600 transition-colors text-sm text-gray-300 hover:text-white"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleJoinGroup(group.id)}
+                        disabled={isJoined || isFull || joiningId === group.id}
+                        className={`flex-1 py-2 px-4 rounded font-medium transition-colors text-sm ${
+                          isJoined
+                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                            : isFull
+                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                            : joiningId === group.id
+                            ? 'bg-blue-600 text-blue-100'
+                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                        }`}
+                      >
+                        {isJoined ? 'Joined' : isFull ? 'Full' : joiningId === group.id ? 'Joining...' : 'Join Group'}
+                      </button>
+                      <button
+                        onClick={() => handleContact(group.contact)}
+                        className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-gray-700 transition-colors text-sm text-gray-300 hover:text-white"
+                      >
+                        Contact
+                      </button>
+                      {canDelete(group) && (
+                        <button
+                          onClick={() => setDeleteConfirm(group)}
+                          className="flex-1 py-2 px-4 bg-red-600 rounded font-medium hover:bg-red-700 transition-colors text-sm text-white"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Create Group Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-xl font-bold mb-4">Create Study Group</h2>
+              <form onSubmit={editItem ? handleUpdate : handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Subject</label>
+                  <input
+                    type="text"
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    required
+                    placeholder="e.g. Data Structures"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Delete Study Group</h3>
-                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Are you sure you want to delete "{deleteConfirm.subject}"? This action cannot be undone.
-                  </p>
+                  <label className="block text-sm font-medium mb-1">Course</label>
+                  <input
+                    type="text"
+                    value={course}
+                    onChange={(e) => setCourse(e.target.value)}
+                    placeholder="e.g. B.E. CSE"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
                 </div>
-              </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Semester</label>
+                  <input
+                    type="text"
+                    value={semester}
+                    onChange={(e) => setSemester(e.target.value)}
+                    placeholder="e.g. 3"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Max Members</label>
+                  <input
+                    type="number"
+                    min={2}
+                    max={20}
+                    value={size}
+                    onChange={(e) => setSize(Number(e.target.value))}
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    rows={3}
+                    placeholder="What you'll cover, schedule, etc."
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    value={contact}
+                    onChange={(e) => setContact(e.target.value)}
+                    placeholder="your.email@example.com"
+                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+                {formError && (
+                  <p className="text-red-400 text-sm">{formError}</p>
+                )}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false)
+                      resetForm()
+                    }}
+                    className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="flex-1 py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded font-medium text-white transition-colors disabled:opacity-50"
+                  >
+                    {saving ? (editItem ? 'Updating...' : 'Creating...') : (editItem ? 'Update Group' : 'Create Group')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
-              <div className="mt-6 flex justify-end gap-3">
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
+              <h2 className="text-xl font-bold mb-4 text-red-400">Delete Study Group</h2>
+              <p className="text-gray-300 mb-6">
+                Are you sure you want to delete "{deleteConfirm.subject}"? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setDeleteConfirm(null)}
-                  className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-gray-700 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(deleteConfirm)}
-                  className="rounded-full bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600"
+                  className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 rounded font-medium text-white transition-colors"
                 >
                   Delete
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </main>
     </div>
   )
 }

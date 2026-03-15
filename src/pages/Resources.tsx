@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { useToast } from '../context/ToastContext'
 import { API_BASE } from '../api'
 import { getImageUrl } from '../utils/imageUtils'
 import { ResourceDetailsModal } from '../components/ResourceDetailsModal'
@@ -25,11 +26,12 @@ interface Material {
   postedByUserId?: number
 }
 
-type ViewMode = 'browse' | 'add'
+type ViewMode = 'browse' | 'add' | 'edit'
 
 export function Resources() {
   const { user } = useAuth()
   const { addToCart } = useCart()
+  const { addToast } = useToast()
   const [view, setView] = useState<ViewMode>('browse')
   const [items, setItems] = useState<Material[]>([])
   const [details, setDetails] = useState<Material | null>(null)
@@ -53,6 +55,7 @@ export function Resources() {
   const [ownerContact, setOwnerContact] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<Material | null>(null)
+  const [editItem, setEditItem] = useState<Material | null>(null)
 
   useEffect(() => {
     const fetchMaterials = async () => {
@@ -152,6 +155,84 @@ export function Resources() {
     }
   }
 
+  const handleEdit = (material: Material) => {
+    setEditItem(material)
+    setTitle(material.title)
+    setCategory(material.category as (typeof categories)[number])
+    setCourse(material.course)
+    setSemester(material.semester)
+    setCondition(material.condition)
+    setType(material.type)
+    setPrice(material.price)
+    setDescription(material.description || '')
+    setOwnerName(material.owner)
+    setOwnerContact(material.ownerContact || '')
+    setImageFile(null)
+    setView('edit')
+  }
+
+  const handleUpdate = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!editItem || !user) return
+
+    setFormError(null)
+    setSaving(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('title', title)
+      formData.append('category', category)
+      formData.append('course', course)
+      formData.append('semester', semester)
+      formData.append('condition', condition)
+      formData.append('type', type)
+      formData.append('price', type === 'Donation' ? 'Free' : price || '₹0')
+      formData.append('owner', ownerName || (user?.name ?? 'Anonymous'))
+      formData.append('ownerContact', ownerContact)
+      formData.append('description', description)
+      
+      if (imageFile) {
+        formData.append('image', imageFile)
+      }
+
+      const response = await fetch(`${API_BASE}/api/materials/${editItem.id}`, {
+        method: 'PUT',
+        headers: { 'X-User-Id': String(user.id) },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to update material')
+      }
+
+      const updatedItem = await response.json()
+      setItems(prev => prev.map(item => item.id === editItem.id ? updatedItem : item))
+      setView('browse')
+      resetForm()
+    } catch (err) {
+      console.error(err)
+      setFormError(err instanceof Error ? err.message : 'Failed to update material')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const resetForm = () => {
+    setTitle('')
+    setCourse('')
+    setSemester('')
+    setCondition('')
+    setDescription('')
+    setPrice('')
+    setOwnerContact('')
+    setImageFile(null)
+    setCategory('Book')
+    setType('For Sale')
+    setOwnerName(user?.name ?? '')
+    setEditItem(null)
+  }
+
   const handleDelete = async (material: Material) => {
     if (!user) return
 
@@ -168,10 +249,16 @@ export function Resources() {
 
       setItems((prev) => prev.filter((item) => item.id !== material.id))
       setDeleteConfirm(null)
+      addToast('Resource deleted successfully', 'success')
     } catch (err) {
       console.error('Delete error:', err)
-      alert((err as Error).message)
+      addToast((err as Error).message, 'error')
     }
+  }
+
+  const canEdit = (material: Material) => {
+    if (!user) return false
+    return user.role === 'admin' || material.postedByUserId === user.id
   }
 
   const canDelete = (material: Material) => {
@@ -181,8 +268,8 @@ export function Resources() {
 
   const handleAddToCart = (item: Material) => {
     if (item.type === 'Donation') {
-      // Simple, reliable alert for donations
-      window.alert(`🎁 Donation Available!\n\nItem: ${item.title}\nContact: ${item.owner}\n${item.ownerContact ? `Phone/Email: ${item.ownerContact}\n` : ''}Please reach out directly to arrange pickup/delivery.`)
+      // Show toast for donations
+      addToast(`🎁 Donation Available! Contact: ${item.owner}${item.ownerContact ? ` • ${item.ownerContact}` : ''}`, 'info', 5000)
       return
     }
     
@@ -199,7 +286,7 @@ export function Resources() {
       owner: item.owner,
     })
     
-    window.alert(`✅ ${item.title} added to cart!`)
+    addToast(`${item.title} added to cart!`, 'success')
   }
 
   const filteredItems = items.filter((item) => {
@@ -235,7 +322,7 @@ export function Resources() {
           </button>
           <button
             type="button"
-            onClick={() => setView('add')}
+            onClick={() => { setView('add'); resetForm(); }}
             className={`rounded-full px-3 py-1.5 font-medium ${
               view === 'add'
                 ? 'bg-blue-600 text-white dark:bg-blue-500'
@@ -247,9 +334,12 @@ export function Resources() {
         </div>
       </header>
 
-      {view === 'add' && (
+      {(view === 'add' || view === 'edit') && (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100 sm:text-sm">
-          <form onSubmit={handleAdd} className="grid gap-4 md:grid-cols-2">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+            {view === 'edit' ? 'Edit Resource' : 'Add New Resource'}
+          </h2>
+          <form onSubmit={view === 'edit' ? handleUpdate : handleAdd} className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <div>
                 <label className="mb-1 block text-slate-700 dark:text-slate-300">
@@ -418,7 +508,7 @@ export function Resources() {
               <div className="mt-2 flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setView('browse')}
+                  onClick={() => { setView('browse'); resetForm(); }}
                   className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
                 >
                   Cancel
@@ -428,7 +518,7 @@ export function Resources() {
                   disabled={saving}
                   className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-400"
                 >
-                  {saving ? 'Saving…' : 'Save resource'}
+                  {saving ? (view === 'edit' ? 'Updating…' : 'Saving…') : (view === 'edit' ? 'Update Resource' : 'Save resource')}
                 </button>
               </div>
             </div>
@@ -551,6 +641,15 @@ export function Resources() {
                   >
                     View details
                   </button>
+                  {canEdit(item) && (
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(item)}
+                      className="rounded-full bg-amber-500 px-3 py-1 font-medium text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700"
+                    >
+                      Edit
+                    </button>
+                  )}
                   {item.type === 'For Sale' && (
                     <button
                       type="button"

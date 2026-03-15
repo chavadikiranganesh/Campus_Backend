@@ -7,6 +7,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai')
 const bcrypt = require('bcrypt')
 const { upload, uploadLostFound, uploadAccommodation } = require('./upload')
 const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
+const { authenticate, checkOwnership, requireAdmin } = require('./middleware/auth')
 
 // Razorpay Setup
 const razorpay = new Razorpay({
@@ -353,13 +354,43 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
   }
 })
 
-app.delete('/api/materials/:id', async (req, res) => {
+// Materials UPDATE
+app.put('/api/materials/:id', upload.single('image'), authenticate, checkOwnership('StudyMaterial'), async (req, res) => {
   try {
-    const id = Number(req.params.id)
-    const item = await StudyMaterial.findOneAndDelete({ id })
-    if (!item) return res.status(404).json({ message: 'Material not found.' })
-    res.json(item)
+    const material = req.item
+    const payload = req.body || {}
+    
+    // Update fields
+    if (payload.title) material.title = payload.title
+    if (payload.category) material.category = payload.category
+    if (payload.course) material.course = payload.course
+    if (payload.semester) material.semester = payload.semester
+    if (payload.condition) material.condition = payload.condition
+    if (payload.type) material.type = payload.type
+    if (payload.price) material.price = payload.price
+    if (payload.owner) material.owner = payload.owner
+    if (payload.ownerContact) material.ownerContact = payload.ownerContact
+    if (payload.description) material.description = payload.description
+    
+    // Handle image update
+    if (req.file) {
+      material.image = req.file.path
+    }
+    
+    await material.save()
+    res.json(material)
   } catch (error) {
+    console.error('Update material error:', error)
+    res.status(500).json({ message: 'Failed to update material' })
+  }
+})
+
+app.delete('/api/materials/:id', authenticate, checkOwnership('StudyMaterial'), async (req, res) => {
+  try {
+    await StudyMaterial.findOneAndDelete({ id: req.item.id })
+    res.json({ message: 'Material deleted successfully' })
+  } catch (error) {
+    console.error('Delete material error:', error)
     res.status(500).json({ message: 'Failed to delete material' })
   }
 })
@@ -431,35 +462,36 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
   }
 })
 
-// Lost & Found DELETE
-app.delete('/api/lost-found/:id', async (req, res) => {
+// Lost & Found UPDATE
+app.put('/api/lost-found/:id', uploadLostFound.single('image'), authenticate, checkOwnership('LostFound'), async (req, res) => {
   try {
-    const id = Number(req.params.id)
-    const requestingUserId = req.headers['x-user-id']
+    const item = req.item
+    const payload = req.body || {}
     
-    if (!requestingUserId) {
-      return res.status(401).json({ message: 'User authentication required' })
+    // Update fields
+    if (payload.type) item.type = payload.type
+    if (payload.title) item.title = payload.title
+    if (payload.description) item.description = payload.description
+    if (payload.location) item.location = payload.location
+    if (payload.contact) item.contact = payload.contact
+    
+    // Handle image update
+    if (req.file) {
+      item.image = req.file.path
     }
+    
+    await item.save()
+    res.json(item)
+  } catch (error) {
+    console.error('Update lost-found error:', error)
+    res.status(500).json({ message: 'Failed to update item' })
+  }
+})
 
-    const item = await LostFound.findOne({ id })
-    if (!item) {
-      return res.status(404).json({ message: 'Item not found' })
-    }
-
-    // Check if user is admin or the original poster
-    const requestingUser = await User.findOne({ id: Number(requestingUserId) })
-    if (!requestingUser) {
-      return res.status(401).json({ message: 'Invalid user' })
-    }
-
-    const isAdmin = requestingUser.role === 'admin'
-    const isOwner = item.postedByUserId === Number(requestingUserId)
-
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({ message: 'You can only delete your own items or admin access required' })
-    }
-
-    await LostFound.findOneAndDelete({ id })
+// Lost & Found DELETE
+app.delete('/api/lost-found/:id', authenticate, checkOwnership('LostFound'), async (req, res) => {
+  try {
+    await LostFound.findOneAndDelete({ id: req.item.id })
     res.json({ message: 'Item deleted successfully' })
   } catch (error) {
     console.error('Delete lost-found error:', error)
@@ -570,6 +602,39 @@ app.post('/api/study-groups', async (req, res) => {
   } catch (error) {
     console.error('Create study group error:', error)
     res.status(500).json({ message: 'Failed to create study group' })
+  }
+})
+
+// Study Groups UPDATE
+app.put('/api/study-groups/:id', authenticate, checkOwnership('StudyGroup', 'createdBy'), async (req, res) => {
+  try {
+    const group = req.item
+    const payload = req.body || {}
+    
+    // Update fields
+    if (payload.subject) group.subject = payload.subject
+    if (payload.course) group.course = payload.course
+    if (payload.semester) group.semester = payload.semester
+    if (payload.size) group.size = payload.size
+    if (payload.contact) group.contact = payload.contact
+    if (payload.description) group.description = payload.description
+    
+    await group.save()
+    res.json(group)
+  } catch (error) {
+    console.error('Update study group error:', error)
+    res.status(500).json({ message: 'Failed to update study group' })
+  }
+})
+
+// Study Groups DELETE
+app.delete('/api/study-groups/:id', authenticate, checkOwnership('StudyGroup', 'createdBy'), async (req, res) => {
+  try {
+    await StudyGroup.findOneAndDelete({ id: req.item.id })
+    res.json({ message: 'Study group deleted successfully' })
+  } catch (error) {
+    console.error('Delete study group error:', error)
+    res.status(500).json({ message: 'Failed to delete study group' })
   }
 })
 
@@ -776,6 +841,7 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
     console.log('Uploaded files:', req.files)
     
     const payload = req.body || {}
+    const userId = payload.userId ? Number(payload.userId) : null
     
     // Get next ID
     const lastAccom = await Accommodation.findOne().sort({ id: -1 })
@@ -793,6 +859,13 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
     
     console.log('Final images array:', images)
     
+    // Find user ObjectId if userId is provided
+    let userObjectId = null
+    if (userId) {
+      const user = await User.findOne({ id: userId })
+      userObjectId = user ? user._id : null
+    }
+    
     const newPlace = new Accommodation({
       id: nextId,
       name: payload.name || 'Untitled PG',
@@ -802,6 +875,7 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
       facilities: Array.isArray(payload.facilities) ? payload.facilities : [],
       contact: payload.contact || 'Not provided',
       images: images, // Store Cloudinary URLs
+      postedByUserId: userObjectId,
     })
     await newPlace.save()
 
@@ -825,13 +899,40 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
   }
 })
 
-app.delete('/api/accommodations/:id', async (req, res) => {
+// Accommodation UPDATE
+app.put('/api/accommodations/:id', uploadAccommodation.array('images', 5), authenticate, checkOwnership('Accommodation'), async (req, res) => {
   try {
-    const id = Number(req.params.id)
-    const place = await Accommodation.findOneAndDelete({ id })
-    if (!place) return res.status(404).json({ message: 'Accommodation not found.' })
-    res.json(place)
+    const accommodation = req.item
+    const payload = req.body || {}
+    
+    // Update fields
+    if (payload.name) accommodation.name = payload.name
+    if (payload.distance) accommodation.distance = payload.distance
+    if (payload.rent) accommodation.rent = payload.rent
+    if (payload.occupancy) accommodation.occupancy = payload.occupancy
+    if (payload.facilities) accommodation.facilities = Array.isArray(payload.facilities) ? payload.facilities : []
+    if (payload.contact) accommodation.contact = payload.contact
+    
+    // Handle image update
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map(file => file.path)
+      accommodation.images = newImages
+    }
+    
+    await accommodation.save()
+    res.json(accommodation)
   } catch (error) {
+    console.error('Update accommodation error:', error)
+    res.status(500).json({ message: 'Failed to update accommodation' })
+  }
+})
+
+app.delete('/api/accommodations/:id', authenticate, checkOwnership('Accommodation'), async (req, res) => {
+  try {
+    await Accommodation.findOneAndDelete({ id: req.item.id })
+    res.json({ message: 'Accommodation deleted successfully' })
+  } catch (error) {
+    console.error('Delete accommodation error:', error)
     res.status(500).json({ message: 'Failed to delete accommodation' })
   }
 })
