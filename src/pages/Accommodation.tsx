@@ -330,6 +330,7 @@ export function Accommodation() {
                       const files = Array.from(e.target.files || [])
                       // Validate file count and types
                       const validFiles = files.filter(file => {
+                        if (!file) return false // Filter out null files
                         const isValidType = file.type.startsWith('image/')
                         const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB
                         if (!isValidType) {
@@ -358,10 +359,10 @@ export function Accommodation() {
                 {photoFiles.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Selected ({photoFiles.length}/5): {photoFiles.map(f => f.name).join(', ')}
+                      Selected ({photoFiles.length}/5): {photoFiles.filter(f => f).map(f => f.name).join(', ')}
                     </p>
                     <div className="grid grid-cols-3 gap-2">
-                      {photoFiles.map((file, index) => (
+                      {photoFiles.filter(f => f).map((file, index) => (
                         <div key={index} className="relative group">
                           <img
                             src={URL.createObjectURL(file)}
