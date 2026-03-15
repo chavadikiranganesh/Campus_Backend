@@ -104,8 +104,14 @@ export function Accommodation() {
       
       // Add image files
       photoFiles.forEach(file => {
+        console.log('Appending file:', file.name)
         formData.append('images', file)
       })
+      
+      console.log('FormData entries:')
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value)
+      }
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
         method: 'POST',

@@ -703,6 +703,9 @@ app.get('/api/accommodations', async (req, res) => {
 
 app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (req, res) => {
   try {
+    console.log('Request body:', req.body)
+    console.log('Uploaded files:', req.files)
+    
     const payload = req.body || {}
     
     // Get next ID
@@ -712,8 +715,14 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
     // Handle uploaded images - get Cloudinary URLs
     let images = []
     if (req.files && req.files.length > 0) {
-      images = req.files.map(file => file.path)
+      console.log('Processing files:', req.files.length)
+      images = req.files.map(file => {
+        console.log('File path:', file.path)
+        return file.path
+      })
     }
+    
+    console.log('Final images array:', images)
     
     const newPlace = new Accommodation({
       id: nextId,
