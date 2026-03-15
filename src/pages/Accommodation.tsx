@@ -225,8 +225,7 @@ export function Accommodation() {
               </div>
             )}
           </article>
-          )
-        })}
+        ))}
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-500 hidden sm:text-sm">

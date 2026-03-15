@@ -120,14 +120,20 @@ export function LostAndFound() {
     if (!user) return
 
     try {
-      const response = await fetch(`${API_BASE}/api/lostfound/${item.id}`, {
+      const response = await fetch(`${API_BASE}/api/lost-found/${item.id}`, {
         method: 'DELETE',
-        headers: { 'X-User-Id': String(user.id) },
+        headers: { 'x-user-id': String(user.id) },
       })
 
       if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || 'Failed to delete item')
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const error = await response.json()
+          throw new Error(error.message || 'Failed to delete item')
+        } else {
+          const errorText = await response.text()
+          throw new Error(`Server error: ${response.status} - ${errorText}`)
+        }
       }
 
       setItems((prev) => prev.filter((i) => i.id !== item.id))

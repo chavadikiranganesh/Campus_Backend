@@ -414,13 +414,13 @@ app.delete('/api/lost-found/:id', async (req, res) => {
     }
 
     // Check if user is admin or the original poster
-    const requestingUser = await User.findById(requestingUserId)
+    const requestingUser = await User.findOne({ id: Number(requestingUserId) })
     if (!requestingUser) {
       return res.status(401).json({ message: 'Invalid user' })
     }
 
     const isAdmin = requestingUser.role === 'admin'
-    const isOwner = item.postedByUserId?.toString() === requestingUserId
+    const isOwner = item.postedByUserId === Number(requestingUserId)
 
     if (!isAdmin && !isOwner) {
       return res.status(403).json({ message: 'You can only delete your own items or admin access required' })
