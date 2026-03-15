@@ -1,5 +1,3 @@
-import { Chatbot } from '../components/chatbot/Chatbot'
-
 export function Home() {
   return (
     <div className="space-y-10">
@@ -32,7 +30,10 @@ export function Home() {
           </div>
         </div>
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-xl shadow-blue-900/30">
-          <Chatbot compact />
+          <div className="text-center text-slate-300">
+            <h3 className="text-lg font-semibold mb-2">AI Assistant Available</h3>
+            <p className="text-sm">Chat with our AI assistant for help with campus resources, accommodation, and more!</p>
+          </div>
         </div>
       </section>
 

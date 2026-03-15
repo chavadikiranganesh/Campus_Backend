@@ -1,15 +1,12 @@
-import { useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Navbar } from './Navbar'
 import { Footer } from './Footer'
 import { useAuth } from '../context/AuthContext'
-import { ChatBot } from './ChatBot'
 
 export function Layout() {
   const { user, loading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
-  const [chatOpen, setChatOpen] = useState(false)
 
   const handleGoBack = () => {
     if (window.history.length > 1) {
@@ -47,23 +44,6 @@ export function Layout() {
             </button>
           )}
           <Outlet />
-        </div>
-
-        {/* Floating chatbot launcher */}
-        <div className="pointer-events-none fixed bottom-4 right-4 z-30 flex flex-col items-end gap-2">
-          {chatOpen && (
-            <div className="pointer-events-auto mb-2 w-full max-w-sm rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 dark:border-slate-700 dark:bg-slate-800 dark:shadow-slate-900/80">
-              <ChatBot />
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setChatOpen((prev) => !prev)}
-            className="pointer-events-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-xl text-white shadow-lg shadow-blue-500/40 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
-            aria-label="Open chatbot"
-          >
-            💬
-          </button>
         </div>
       </main>
       <Footer />
