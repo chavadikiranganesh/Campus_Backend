@@ -33,13 +33,6 @@ if (hasGeminiKey) {
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('MongoDB connected')
-    
-    // Run migration for image fields
-    const { migrateCloudDatabase } = require('./migrate-cloud')
-    migrateCloudDatabase().catch(err => {
-      console.error('Migration failed:', err)
-      // Don't exit the server, just continue
-    })
   })
   .catch(err => console.log('MongoDB connection error:', err))
 
