@@ -5,7 +5,7 @@ const cors = require('cors')
 const Razorpay = require("razorpay")
 const { GoogleGenerativeAI } = require('@google/generative-ai')
 const bcrypt = require('bcrypt')
-const { upload, uploadLostFound } = require('./upload')
+const { upload, uploadLostFound, uploadAccommodation } = require('./upload')
 const { User, Order, StudyMaterial, Accommodation, LostFound, Event, StudyGroup, LoginLog, Notification, MedicalHelp, Payment } = require('./models')
 
 // Razorpay Setup
@@ -701,14 +701,22 @@ app.get('/api/accommodations', async (req, res) => {
   }
 })
 
-app.post('/api/accommodations', async (req, res) => {
+app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (req, res) => {
   try {
     const payload = req.body || {}
-    const photos = Array.isArray(payload.photos) ? payload.photos : (payload.photos ? [].concat(payload.photos) : [])
     
     // Get next ID
     const lastAccom = await Accommodation.findOne().sort({ id: -1 })
     const nextId = lastAccom ? lastAccom.id + 1 : 1
+    
+    // Handle uploaded images
+    let photos = []
+    if (req.files && req.files.length > 0) {
+      photos = req.files.map(file => file.path)
+    } else if (payload.photos) {
+      // Fallback for manual URL input
+      photos = Array.isArray(payload.photos) ? payload.photos : [payload.photos]
+    }
     
     const newPlace = new Accommodation({
       id: nextId,

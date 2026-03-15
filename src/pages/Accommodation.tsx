@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { API_BASE } from '../api'
+import { getImageUrl } from '../utils/imageUtils'
 
 const sampleAccommodations = [
   {
@@ -90,37 +91,37 @@ export function Accommodation() {
     setFormError(null)
     setSaving(true)
     try {
-      let photos: string[] = []
+      // Create FormData for file upload
+      const formData = new FormData()
+      formData.append('name', name)
+      formData.append('distance', distance)
+      formData.append('rent', rent)
+      formData.append('occupancy', occupancy)
+      formData.append('facilities', facilities)
+      formData.append('contact', contact)
       
-      // Handle file uploads
-      if (photoFiles.length > 0) {
-        photos = photoFiles.map(file => URL.createObjectURL(file))
-      } else {
-        // Fallback to URLs if provided
-        photos = photoUrls.map((p) => p.trim()).filter(Boolean)
-      }
-
-      const payload = {
-        name,
-        distance,
-        rent,
-        occupancy,
-        facilities: facilities
-          .split(',')
-          .map((f) => f.trim())
-          .filter(Boolean),
-        contact,
-        photos,
+      // Add image files
+      photoFiles.forEach(file => {
+        formData.append('images', file)
+      })
+      
+      // Add manual URLs as fallback (if no files uploaded)
+      if (photoFiles.length === 0) {
+        photoUrls.forEach((url, index) => {
+          if (url.trim()) {
+            formData.append(`photos[${index}]`, url.trim())
+          }
+        })
       }
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: formData,
       })
 
       if (!response.ok) {
-        throw new Error('Failed to save accommodation.')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to save accommodation.')
       }
 
       const created: AccommodationItem = await response.json()
@@ -325,14 +326,60 @@ export function Accommodation() {
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(e) => setPhotoFiles(Array.from(e.target.files || []))}
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || [])
+                      // Validate file count and types
+                      const validFiles = files.filter(file => {
+                        const isValidType = file.type.startsWith('image/')
+                        const isValidSize = file.size <= 5 * 1024 * 1024 // 5MB
+                        if (!isValidType) {
+                          alert(`${file.name} is not a valid image file`)
+                          return false
+                        }
+                        if (!isValidSize) {
+                          alert(`${file.name} is too large (max 5MB)`)
+                          return false
+                        }
+                        return true
+                      })
+                      
+                      if (validFiles.length > 5) {
+                        alert('Maximum 5 images allowed')
+                        setPhotoFiles(validFiles.slice(0, 5))
+                      } else {
+                        setPhotoFiles(validFiles)
+                      }
+                    }}
                     className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:file:bg-blue-900/40 dark:file:text-blue-200"
                   />
                 </div>
+                
+                {/* Image Previews */}
                 {photoFiles.length > 0 && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Selected: {photoFiles.map(f => f.name).join(', ')}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Selected ({photoFiles.length}/5): {photoFiles.map(f => f.name).join(', ')}
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {photoFiles.map((file, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={`Preview ${index + 1}`}
+                            className="h-20 w-20 rounded-lg object-cover border border-slate-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setPhotoFiles(prev => prev.filter((_, i) => i !== index))}
+                            className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            ×
+                          </button>
+                          <p className="mt-1 text-xs text-slate-500 truncate">{file.name}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
               
@@ -425,7 +472,7 @@ export function Accommodation() {
 
 function PgPhotoSlider({ photos, name }: { photos: string[]; name: string }) {
   const [index, setIndex] = useState(0)
-  const validPhotos = photos.filter(Boolean)
+  const validPhotos = photos.filter(Boolean).map(photo => getImageUrl(photo))
 
   return (
     <div className="relative h-44 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-700">

@@ -20,6 +20,15 @@ const lostFoundStorage = new CloudinaryStorage({
   },
 });
 
+// Storage configuration for accommodation photos
+const accommodationStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "accommodations",
+    allowed_formats: ["jpg", "png", "jpeg"],
+  },
+});
+
 // File filter for images only
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('image/')) {
@@ -47,4 +56,14 @@ const uploadLostFound = multer({
   }
 });
 
-module.exports = { upload, uploadLostFound };
+// Multer middleware for accommodation (multiple images, max 5)
+const uploadAccommodation = multer({
+  storage: accommodationStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit per file
+    files: 5 // Maximum 5 files
+  }
+});
+
+module.exports = { upload, uploadLostFound, uploadAccommodation };
