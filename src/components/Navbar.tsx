@@ -75,7 +75,7 @@ export function Navbar() {
         searchResults.studyGroups.length
       : 0
 
-  const [notifications, setNotifications] = useState<{ id: number; title: string; body: string; at: string }[]>([])
+  const [notifications, setNotifications] = useState<{ id: number; title: string; body: string; createdAt: string }[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -333,7 +333,7 @@ export function Navbar() {
                       {notifications.slice().reverse().slice(0, 10).map((n, index) => (
                         <li key={n.id || `notif-${index}`} className="border-b border-slate-100 px-3 py-2 last:border-0 dark:border-slate-700">
                           <p className="text-xs font-medium text-slate-900 dark:text-slate-50">{n.title}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{n.body || new Date(n.at).toLocaleString()}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{n.body || (n.createdAt ? new Date(n.createdAt).toLocaleString() : 'No date')}</p>
                         </li>
                       ))}
                     </ul>

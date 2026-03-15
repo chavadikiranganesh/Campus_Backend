@@ -4,7 +4,7 @@ const { User } = require('../models')
 
 // Check if user is authenticated
 const authenticate = async (req, res, next) => {
-  const userId = req.headers['x-user-id']
+  const userId = req.headers['x-user-id'] || req.headers['X-User-Id']
   
   if (!userId) {
     return res.status(401).json({ message: 'User authentication required' })

@@ -30,6 +30,9 @@ type ViewMode = 'browse' | 'add' | 'edit'
 
 export function Resources() {
   const { user } = useAuth()
+  console.log('Current user in Resources:', user)
+  console.log('User ID type:', typeof user?.id)
+  console.log('User role:', user?.role)
   const { addToCart } = useCart()
   const { addToast } = useToast()
   const [view, setView] = useState<ViewMode>('browse')
@@ -67,6 +70,7 @@ export function Resources() {
           throw new Error('Failed to load materials from backend')
         }
         const data: Material[] = await response.json()
+        console.log('Fetched materials:', data)
         setItems(data)
       } catch (err) {
         console.error(err)
@@ -122,6 +126,7 @@ export function Resources() {
 
       const response = await fetch(`${API_BASE}/api/materials`, {
         method: 'POST',
+        headers: user ? { 'X-User-Id': String(user.id) } : {},
         body: formData,
       })
 
@@ -257,13 +262,66 @@ export function Resources() {
   }
 
   const canEdit = (material: Material) => {
-    if (!user) return false
-    return user.role === 'admin' || material.postedByUserId === user.id
+    if (!user) {
+      console.log('canEdit: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values
+    const materialUserId = material.postedByUserId
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const materialUserIdNum = materialUserId != null ? Number(materialUserId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = materialUserIdNum !== null && materialUserIdNum === currentUserIdNum
+    
+    console.log('canEdit check:', {
+      userId: currentUserId,
+      userIdType: typeof currentUserId,
+      materialPostedBy: materialUserId,
+      materialPostedByType: typeof materialUserId,
+      materialUserIdNum,
+      currentUserIdNum,
+      userRole: user.role,
+      isAdmin,
+      isOwner,
+      canEditResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   const canDelete = (material: Material) => {
-    if (!user) return false
-    return user.role === 'admin' || material.postedByUserId === user.id
+    if (!user) {
+      console.log('canDelete: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values
+    const materialUserId = material.postedByUserId
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const materialUserIdNum = materialUserId != null ? Number(materialUserId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = materialUserIdNum !== null && materialUserIdNum === currentUserIdNum
+    
+    console.log('canDelete check:', {
+      userId: currentUserId,
+      materialPostedBy: materialUserId,
+      materialUserIdNum,
+      currentUserIdNum,
+      isAdmin,
+      isOwner,
+      canDeleteResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   const handleAddToCart = (item: Material) => {

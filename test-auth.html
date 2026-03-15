@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Authentication Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testAuth() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Testing...</h2>';
+            
+            try {
+                // Test 1: Register a new user
+                console.log('Testing registration...');
+                const registerResponse = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        name: 'Test User', 
+                        email: 'test@example.com', 
+                        password: 'test123456' 
+                    }),
+                });
+                
+                const registerData = await registerResponse.json();
+                console.log('Register response:', registerData);
+                
+                // Test 2: Login
+                console.log('Testing login...');
+                const loginResponse = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: 'test@example.com', 
+                        password: 'test123456' 
+                    }),
+                });
+                
+                const loginData = await loginResponse.json();
+                console.log('Login response:', loginData);
+                
+                if (loginData.id) {
+                    // Test 3: Create item with authentication
+                    console.log('Testing item creation...');
+                    const formData = new FormData();
+                    formData.append('title', 'Test Book');
+                    formData.append('price', '100');
+                    formData.append('condition', 'Good');
+                    formData.append('owner', 'Test Owner');
+                    formData.append('category', 'Book');
+                    formData.append('course', 'CS101');
+                    formData.append('semester', '1');
+                    
+                    const createResponse = await fetch('/api/materials', {
+                        method: 'POST',
+                        headers: { 'X-User-Id': String(loginData.id) },
+                        body: formData,
+                    });
+                    
+                    const createData = await createResponse.json();
+                    console.log('Create response:', createData);
+                    
+                    // Test 4: Try to delete without authentication (should fail)
+                    console.log('Testing unauthorized delete...');
+                    const unauthorizedDeleteResponse = await fetch(`/api/materials/${createData.id}`, {
+                        method: 'DELETE',
+                    });
+                    
+                    console.log('Unauthorized delete status:', unauthorizedDeleteResponse.status);
+                    
+                    // Test 5: Try to delete with authentication (should work)
+                    console.log('Testing authorized delete...');
+                    const authorizedDeleteResponse = await fetch(`/api/materials/${createData.id}`, {
+                        method: 'DELETE',
+                        headers: { 'X-User-Id': String(loginData.id) },
+                    });
+                    
+                    console.log('Authorized delete status:', authorizedDeleteResponse.status);
+                    
+                    results.innerHTML = `
+                        <h2>Test Results:</h2>
+                        <p>✅ Registration: ${registerResponse.status}</p>
+                        <p>✅ Login: ${loginResponse.status} - User ID: ${loginData.id}</p>
+                        <p>✅ Create Item: ${createResponse.status} - Item ID: ${createData.id}</p>
+                        <p>✅ Unauthorized Delete: ${unauthorizedDeleteResponse.status} (Should be 401)</p>
+                        <p>✅ Authorized Delete: ${authorizedDeleteResponse.status} (Should be 200)</p>
+                        <h3>Authentication system is working!</h3>
+                    `;
+                } else {
+                    results.innerHTML = '<h2>❌ Login failed</h2>';
+                }
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                results.innerHTML = `<h2>❌ Error: ${error.message}</h2>`;
+            }
+        }
+        
+        // Run test when page loads
+        testAuth();
+    </script>
+</body>
+</html>

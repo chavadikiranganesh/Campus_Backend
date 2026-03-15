@@ -118,6 +118,7 @@ export function Accommodation() {
 
       const response = await fetch(`${API_BASE}/api/accommodations`, {
         method: 'POST',
+        headers: user ? { 'X-User-Id': String(user.id) } : {},
         body: formData,
       })
 
@@ -232,13 +233,64 @@ export function Accommodation() {
   }
 
   const canEdit = (accommodation: AccommodationItem) => {
-    if (!user) return false
-    return user.role === 'admin' || accommodation.postedByUserId === user.id
+    if (!user) {
+      console.log('Accommodation canEdit: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values
+    const accommodationUserId = accommodation.postedByUserId
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const accommodationUserIdNum = accommodationUserId != null ? Number(accommodationUserId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = accommodationUserIdNum !== null && accommodationUserIdNum === currentUserIdNum
+    
+    console.log('Accommodation canEdit check:', {
+      userId: currentUserId,
+      accommodationPostedBy: accommodationUserId,
+      accommodationUserIdNum,
+      currentUserIdNum,
+      userRole: user.role,
+      isAdmin,
+      isOwner,
+      canEditResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   const canDelete = (accommodation: AccommodationItem) => {
-    if (!user) return false
-    return user.role === 'admin' || accommodation.postedByUserId === user.id
+    if (!user) {
+      console.log('Accommodation canDelete: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values
+    const accommodationUserId = accommodation.postedByUserId
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const accommodationUserIdNum = accommodationUserId != null ? Number(accommodationUserId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = accommodationUserIdNum !== null && accommodationUserIdNum === currentUserIdNum
+    
+    console.log('Accommodation canDelete check:', {
+      userId: currentUserId,
+      accommodationPostedBy: accommodationUserId,
+      accommodationUserIdNum,
+      currentUserIdNum,
+      isAdmin,
+      isOwner,
+      canDeleteResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   return (

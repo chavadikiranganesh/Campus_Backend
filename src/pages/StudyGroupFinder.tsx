@@ -14,7 +14,7 @@ interface StudyGroup {
   members?: number[]
   postedByUserId?: number
   creatorEmail: string
-  createdBy?: string
+  createdBy?: any
 }
 
 export function StudyGroupFinder() {
@@ -228,13 +228,64 @@ export function StudyGroupFinder() {
   }
 
   const canEdit = (group: StudyGroup) => {
-    if (!user) return false
-    return user.role === 'admin' || group.postedByUserId === user.id
+    if (!user) {
+      console.log('StudyGroup canEdit: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values for createdBy
+    const groupCreatorId = group.createdBy?.id
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const groupCreatorIdNum = groupCreatorId != null ? Number(groupCreatorId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = groupCreatorIdNum !== null && groupCreatorIdNum === currentUserIdNum
+    
+    console.log('StudyGroup canEdit check:', {
+      userId: currentUserId,
+      groupCreatorId,
+      groupCreatorIdNum,
+      currentUserIdNum,
+      userRole: user.role,
+      isAdmin,
+      isOwner,
+      canEditResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   const canDelete = (group: StudyGroup) => {
-    if (!user) return false
-    return user.role === 'admin' || group.postedByUserId === user.id
+    if (!user) {
+      console.log('StudyGroup canDelete: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values for createdBy
+    const groupCreatorId = group.createdBy?.id
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const groupCreatorIdNum = groupCreatorId != null ? Number(groupCreatorId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = groupCreatorIdNum !== null && groupCreatorIdNum === currentUserIdNum
+    
+    console.log('StudyGroup canDelete check:', {
+      userId: currentUserId,
+      groupCreatorId,
+      groupCreatorIdNum,
+      currentUserIdNum,
+      isAdmin,
+      isOwner,
+      canDeleteResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
 
@@ -273,202 +324,232 @@ export function StudyGroupFinder() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Study Group Finder Section */}
-        <section className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Study Group Finder</h1>
-          <p className="text-gray-400 mb-8">Find or create study groups by subject.</p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-8 rounded-lg transition-colors flex items-center gap-2 mx-auto"
-          >
-            <span className="text-xl">+</span> Create group
-          </button>
-        </section>
+    <div className="space-y-6">
+      <main>
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
+            Study Groups
+          </h1>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Find or create study groups by subject.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center justify-center rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-400"
+        >
+          + Create Group
+        </button>
+      </header>
 
-        {/* Filter Section */}
-        <section className="mb-8">
-          <div className="flex justify-center">
-            <select
-              value={courseFilter}
-              onChange={(e) => setCourseFilter(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-purple-500 min-w-[150px]"
-            >
-              <option value="">All courses</option>
-              {courses.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
+      <section className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/50 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+          <select
+            value={courseFilter}
+            onChange={(e) => setCourseFilter(e.target.value)}
+            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-800 outline-none dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+          >
+            <option value="">All courses</option>
+            {courses.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
+      </section>
 
         {/* Available Study Groups */}
         <section>
-          <h2 className="text-2xl font-bold mb-6">Available Study Groups</h2>
           {loading ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400">Loading study groups...</p>
-            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading study groups…</p>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-400">No study groups found. Create one to get started!</p>
-            </div>
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              No study groups found. Create one to get started!
+            </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid gap-4 md:grid-cols-2">
               {filtered.map((group) => {
                 const currentMembers = group.members?.length || 0
                 const isJoined = user?.id && group.members?.includes(user.id)
                 const isFull = currentMembers >= group.size
                 
                 return (
-                  <div key={group.id} className="bg-gray-800 border border-gray-700 rounded-lg p-6 hover:border-purple-500 transition-colors">
-                    <h3 className="text-lg font-semibold mb-3">{group.subject}</h3>
-                    <div className="space-y-2 text-sm text-gray-300 mb-4">
-                      <p>Course: {group.course}</p>
-                      <p>Semester: {group.semester}</p>
-                      <p>Members: {currentMembers} / {group.size}</p>
+                  <article
+                    key={group.id}
+                    className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm shadow-slate-200/80 dark:border-slate-700 dark:bg-slate-800/50 dark:shadow-slate-900/60"
+                  >
+                    <div className="space-y-3">
+                      <div>
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 sm:text-base">
+                          {group.subject}
+                        </h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {group.course} • Semester {group.semester}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Members: {currentMembers} / {group.size}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          Creator: {group.createdBy?.name || group.contact}
+                        </p>
+                        {group.description && (
+                          <p className="mt-1 text-[11px] text-slate-600 line-clamp-2 dark:text-slate-300">
+                            {group.description}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-400 mb-6">
-                      <p>Creator: {group.creatorEmail}</p>
+
+                    <div className="mt-3 flex items-center justify-between text-xs sm:text-sm">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${
+                          isJoined
+                            ? 'bg-emerald-500/15 border border-emerald-500/40 text-emerald-700 dark:text-emerald-200'
+                            : isFull
+                            ? 'bg-rose-500/15 border border-rose-500/40 text-rose-700 dark:text-rose-200'
+                            : 'bg-blue-500/10 border border-blue-500/40 text-blue-700 dark:text-blue-200'
+                        }`}
+                      >
+                        {isJoined ? 'Joined' : isFull ? 'Full' : `${currentMembers}/${group.size} members`}
+                      </span>
+                      <div className="text-right text-[11px] text-slate-500 dark:text-slate-400">
+                        <p>Contact: {group.contact}</p>
+                      </div>
                     </div>
-                    <div className="flex gap-3">
+
+                    <div className="mt-3 flex items-center justify-end gap-2 text-[11px]">
                       {canEdit(group) && (
                         <button
+                          type="button"
                           onClick={() => handleEdit(group)}
-                          className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-amber-600 transition-colors text-sm text-gray-300 hover:text-white"
+                          className="rounded-full bg-amber-500 px-3 py-1 font-medium text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700"
                         >
                           Edit
                         </button>
                       )}
                       <button
+                        type="button"
                         onClick={() => handleJoinGroup(group.id)}
                         disabled={isJoined || isFull || joiningId === group.id}
-                        className={`flex-1 py-2 px-4 rounded font-medium transition-colors text-sm ${
+                        className={`rounded-full px-3 py-1 font-medium transition-colors ${
                           isJoined
-                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                            ? 'bg-emerald-500 text-white cursor-not-allowed'
                             : isFull
-                            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                            ? 'bg-rose-500 text-white cursor-not-allowed'
                             : joiningId === group.id
-                            ? 'bg-blue-600 text-blue-100'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white'
+                            ? 'bg-blue-500 text-blue-100'
+                            : 'bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400'
                         }`}
                       >
                         {isJoined ? 'Joined' : isFull ? 'Full' : joiningId === group.id ? 'Joining...' : 'Join Group'}
                       </button>
                       <button
+                        type="button"
                         onClick={() => handleContact(group.contact)}
-                        className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-gray-700 transition-colors text-sm text-gray-300 hover:text-white"
+                        className="rounded-full border border-slate-300 px-3 py-1 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
                       >
                         Contact
                       </button>
                       {canDelete(group) && (
                         <button
+                          type="button"
                           onClick={() => setDeleteConfirm(group)}
-                          className="flex-1 py-2 px-4 bg-red-600 rounded font-medium hover:bg-red-700 transition-colors text-sm text-white"
+                          className="rounded-full bg-rose-500 px-3 py-1 font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
                         >
                           Delete
                         </button>
                       )}
                     </div>
-                  </div>
+                  </article>
                 )
               })}
             </div>
           )}
         </section>
 
-        {/* Create Group Modal */}
+        {/* Create/Edit Group Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold mb-4">Create Study Group</h2>
-              <form onSubmit={editItem ? handleUpdate : handleSubmit} className="space-y-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100 sm:text-sm max-w-md w-full">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                {editItem ? 'Edit Study Group' : 'Create Study Group'}
+              </h2>
+              <form onSubmit={editItem ? handleUpdate : handleSubmit} className="space-y-4 mt-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Subject</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Subject</label>
                   <input
                     type="text"
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     required
                     placeholder="e.g. Data Structures"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Course</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Course</label>
                   <input
                     type="text"
                     value={course}
                     onChange={(e) => setCourse(e.target.value)}
                     placeholder="e.g. B.E. CSE"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Semester</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Semester</label>
                   <input
                     type="text"
                     value={semester}
                     onChange={(e) => setSemester(e.target.value)}
                     placeholder="e.g. 3"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Max Members</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Max Members</label>
                   <input
                     type="number"
                     min={2}
                     max={20}
                     value={size}
                     onChange={(e) => setSize(Number(e.target.value))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <label className="mb-1 block text-slate-700 dark:text-slate-300">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={3}
-                    placeholder="What you'll cover, schedule, etc."
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
+                    placeholder="What's this study group about?"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Contact Email</label>
-                  <input
-                    type="email"
-                    value={contact}
-                    onChange={(e) => setContact(e.target.value)}
-                    placeholder="your.email@example.com"
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-purple-500"
-                  />
-                </div>
-                {formError && (
-                  <p className="text-red-400 text-sm">{formError}</p>
-                )}
-                <div className="flex gap-3 pt-4">
+
+                {formError && <p className="text-xs text-rose-500 dark:text-rose-400">{formError}</p>}
+
+                <div className="mt-2 flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowCreateModal(false)
-                      resetForm()
-                    }}
-                    className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-gray-700 transition-colors"
+                    onClick={() => { setShowCreateModal(false); resetForm(); }}
+                    className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 py-2 px-4 bg-purple-600 hover:bg-purple-700 rounded font-medium text-white transition-colors disabled:opacity-50"
+                    className="rounded-full bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-400"
                   >
-                    {saving ? (editItem ? 'Updating...' : 'Creating...') : (editItem ? 'Update Group' : 'Create Group')}
+                    {saving ? (editItem ? 'Updating…' : 'Creating…') : (editItem ? 'Update Group' : 'Create Group')}
                   </button>
                 </div>
               </form>
@@ -476,25 +557,28 @@ export function StudyGroupFinder() {
           </div>
         )}
 
+        {/* Delete Confirmation Modal */}
         {deleteConfirm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-              <h2 className="text-xl font-bold mb-4 text-red-400">Delete Study Group</h2>
-              <p className="text-gray-300 mb-6">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 text-xs text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-100 sm:text-sm max-w-md w-full">
+              <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50 text-rose-600">
+                Delete Study Group
+              </h2>
+              <p className="mt-2 text-slate-600 dark:text-slate-300">
                 Are you sure you want to delete "{deleteConfirm.subject}"? This action cannot be undone.
               </p>
-              <div className="flex gap-3">
+              <div className="mt-4 flex gap-2">
                 <button
                   type="button"
                   onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 py-2 px-4 border border-gray-600 rounded font-medium hover:bg-gray-700 transition-colors"
+                  className="rounded-full border border-slate-300 px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDelete(deleteConfirm)}
-                  className="flex-1 py-2 px-4 bg-red-600 hover:bg-red-700 rounded font-medium text-white transition-colors"
+                  className="rounded-full bg-rose-500 px-4 py-2 text-xs font-medium text-white hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-700"
                 >
                   Delete
                 </button>

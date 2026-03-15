@@ -271,17 +271,22 @@ app.get('/api/health', (req, res) => {
 // Study materials
 app.get('/api/materials', async (req, res) => {
   try {
-    const materials = await StudyMaterial.find()
-    res.json(materials)
+    const materials = await StudyMaterial.find().populate('postedByUserId')
+    const formattedMaterials = materials.map(material => ({
+      ...material.toObject(),
+      postedByUserId: material.postedByUserId?.id || null
+    }))
+    res.json(formattedMaterials)
   } catch (error) {
+    console.error('Fetch materials error:', error)
     res.status(500).json({ message: 'Failed to fetch materials' })
   }
 })
 
-app.post('/api/materials', upload.single('image'), async (req, res) => {
+app.post('/api/materials', upload.single('image'), authenticate, async (req, res) => {
   try {
     const payload = req.body || {}
-    const userId = payload.userId ? Number(payload.userId) : null
+    const userId = req.user.id
     
     // Validation - Check required fields
     const requiredFields = ['title', 'price', 'condition', 'owner']
@@ -309,12 +314,8 @@ app.post('/api/materials', upload.single('image'), async (req, res) => {
     // Store the Cloudinary URL
     const imageUrl = req.file.path
     
-    // Find user ObjectId if userId is provided
-    let userObjectId = null
-    if (userId) {
-      const user = await User.findOne({ id: userId })
-      userObjectId = user ? user._id : null
-    }
+    // Find user ObjectId
+    const userObjectId = req.user._id
     
     const newItem = new StudyMaterial({
       id: nextId,
@@ -398,17 +399,21 @@ app.delete('/api/materials/:id', authenticate, checkOwnership('StudyMaterial'), 
 // Lost & Found
 app.get('/api/lost-found', async (req, res) => {
   try {
-    const items = await LostFound.find()
-    res.json(items)
+    const items = await LostFound.find().populate('postedByUserId')
+    const formattedItems = items.map(item => ({
+      ...item.toObject(),
+      postedByUserId: item.postedByUserId?.id || null
+    }))
+    res.json(formattedItems)
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch items' })
   }
 })
 
-app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) => {
+app.post('/api/lost-found', uploadLostFound.single('image'), authenticate, async (req, res) => {
   try {
     const payload = req.body || {}
-    const userId = payload.userId ? Number(payload.userId) : null
+    const userId = req.user.id
     
     // Validation - Check required fields
     const requiredFields = ['title', 'location', 'contact']
@@ -436,12 +441,8 @@ app.post('/api/lost-found', uploadLostFound.single('image'), async (req, res) =>
     // Store the Cloudinary URL
     const imageUrl = req.file.path
     
-    // Find user ObjectId if userId is provided
-    let userObjectId = null
-    if (userId) {
-      const user = await User.findOne({ id: userId })
-      userObjectId = user ? user._id : null
-    }
+    // Find user ObjectId
+    const userObjectId = req.user._id
     
     const item = new LostFound({
       id: nextId,
@@ -509,10 +510,8 @@ app.get('/api/events', async (req, res) => {
   }
 })
 
-app.post('/api/events', async (req, res) => {
+app.post('/api/events', authenticate, requireAdmin, async (req, res) => {
   try {
-    const adminId = req.headers['x-user-id']
-    if (!(await isAdmin(adminId))) return res.status(403).json({ message: 'Admin only' })
     
     const payload = req.body || {}
     
@@ -546,10 +545,8 @@ app.post('/api/events', async (req, res) => {
   }
 })
 
-app.delete('/api/events/:id', async (req, res) => {
+app.delete('/api/events/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    const adminId = req.headers['x-user-id']
-    if (!(await isAdmin(adminId))) return res.status(403).json({ message: 'Admin only' })
     
     const id = Number(req.params.id)
     const event = await Event.findOneAndDelete({ id })
@@ -570,21 +567,17 @@ app.get('/api/study-groups', async (req, res) => {
   }
 })
 
-app.post('/api/study-groups', async (req, res) => {
+app.post('/api/study-groups', authenticate, async (req, res) => {
   try {
     const payload = req.body || {}
-    const userId = payload.userId ? Number(payload.userId) : null
+    const userId = req.user.id
     
     // Get next ID
     const lastGroup = await StudyGroup.findOne().sort({ id: -1 })
     const nextId = lastGroup ? lastGroup.id + 1 : 1
     
-    // Find user ObjectId if userId is provided
-    let userObjectId = null
-    if (userId) {
-      const user = await User.findOne({ id: userId })
-      userObjectId = user ? user._id : null
-    }
+    // Find user ObjectId
+    const userObjectId = req.user._id
     
     const group = new StudyGroup({
       id: nextId,
@@ -639,10 +632,9 @@ app.delete('/api/study-groups/:id', authenticate, checkOwnership('StudyGroup', '
 })
 
 // Join a group
-app.post('/api/study-groups/:id/join', async (req, res) => {
+app.post('/api/study-groups/:id/join', authenticate, async (req, res) => {
   try {
-    const userId = Number(req.headers['x-user-id'])
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' })
+    const userId = req.user.id
     
     const id = Number(req.params.id)
     const group = await StudyGroup.findOne({ id })
@@ -719,10 +711,9 @@ app.get('/api/search', async (req, res) => {
 })
 
 // My listings (for profile) – requires X-User-Id header
-app.get('/api/users/me/listings', async (req, res) => {
+app.get('/api/users/me/listings', authenticate, async (req, res) => {
   try {
-    const userId = Number(req.headers['x-user-id'])
-    if (!userId) return res.status(401).json({ message: 'Unauthorized' })
+    const userId = req.user.id
     
     // Find user by ID to get ObjectId
     const user = await User.findOne({ id: userId })
@@ -741,7 +732,7 @@ app.get('/api/users/me/listings', async (req, res) => {
 // Notifications – X-User-Id for "my" notifications
 app.get('/api/notifications', async (req, res) => {
   try {
-    const userId = req.headers['x-user-id']
+    const userId = req.headers['x-user-id'] || req.headers['X-User-Id']
     const query = userId 
       ? { $or: [{ userId: null }, { userId: { $exists: false } }] }
       : { userId: null }
@@ -770,10 +761,8 @@ app.post('/api/notifications', async (req, res) => {
 })
 
 // Admin – requires X-User-Id header and user must be admin
-app.get('/api/admin/users', async (req, res) => {
+app.get('/api/admin/users', authenticate, requireAdmin, async (req, res) => {
   try {
-    const adminId = req.headers['x-user-id']
-    if (!(await isAdmin(adminId))) return res.status(403).json({ message: 'Admin only' })
     
     const list = await User.find({}, { password: 0 })
     res.json(list)
@@ -782,10 +771,8 @@ app.get('/api/admin/users', async (req, res) => {
   }
 })
 
-app.get('/api/admin/users/:id/activity', async (req, res) => {
+app.get('/api/admin/users/:id/activity', authenticate, requireAdmin, async (req, res) => {
   try {
-    const adminId = req.headers['x-user-id']
-    if (!(await isAdmin(adminId))) return res.status(403).json({ message: 'Admin only' })
     
     const id = Number(req.params.id)
     const user = await User.findOne({ id }, { password: 0 })
@@ -808,10 +795,9 @@ app.get('/api/admin/users/:id/activity', async (req, res) => {
   }
 })
 
-app.delete('/api/admin/users/:id', async (req, res) => {
+app.delete('/api/admin/users/:id', authenticate, requireAdmin, async (req, res) => {
   try {
-    const adminId = req.headers['x-user-id']
-    if (!(await isAdmin(adminId))) return res.status(403).json({ message: 'Admin only' })
+    const adminId = req.user.id
     
     const id = Number(req.params.id)
     if (id === Number(adminId)) return res.status(400).json({ message: 'Cannot delete yourself' })
@@ -828,20 +814,24 @@ app.delete('/api/admin/users/:id', async (req, res) => {
 // Accommodation
 app.get('/api/accommodations', async (req, res) => {
   try {
-    const accommodations = await Accommodation.find()
-    res.json(accommodations)
+    const accommodations = await Accommodation.find().populate('postedByUserId')
+    const formattedAccommodations = accommodations.map(accommodation => ({
+      ...accommodation.toObject(),
+      postedByUserId: accommodation.postedByUserId?.id || null
+    }))
+    res.json(formattedAccommodations)
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch accommodations' })
   }
 })
 
-app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (req, res) => {
+app.post('/api/accommodations', uploadAccommodation.array('images', 5), authenticate, async (req, res) => {
   try {
     console.log('Request body:', req.body)
     console.log('Uploaded files:', req.files)
     
     const payload = req.body || {}
-    const userId = payload.userId ? Number(payload.userId) : null
+    const userId = req.user.id
     
     // Get next ID
     const lastAccom = await Accommodation.findOne().sort({ id: -1 })
@@ -859,12 +849,8 @@ app.post('/api/accommodations', uploadAccommodation.array('images', 5), async (r
     
     console.log('Final images array:', images)
     
-    // Find user ObjectId if userId is provided
-    let userObjectId = null
-    if (userId) {
-      const user = await User.findOne({ id: userId })
-      userObjectId = user ? user._id : null
-    }
+    // Find user ObjectId
+    const userObjectId = req.user._id
     
     const newPlace = new Accommodation({
       id: nextId,
@@ -962,7 +948,7 @@ app.get('/api/medical-help', async (req, res) => {
 app.post('/api/medical-help', async (req, res) => {
   try {
     const payload = req.body || {}
-    const userId = req.headers['x-user-id'] ? Number(req.headers['x-user-id']) : null
+    const userId = req.headers['x-user-id'] || req.headers['X-User-Id'] ? Number(req.headers['x-user-id'] || req.headers['X-User-Id']) : null
     
     // Get next ID
     const lastDonor = await MedicalHelp.findOne().sort({ id: -1 })

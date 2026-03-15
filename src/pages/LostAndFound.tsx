@@ -94,6 +94,7 @@ export function LostAndFound() {
 
       const res = await fetch(`${API_BASE}/api/lost-found`, {
         method: 'POST',
+        headers: user ? { 'X-User-Id': String(user.id) } : {},
         body: formData,
       })
       
@@ -209,13 +210,64 @@ export function LostAndFound() {
   }
 
   const canEdit = (item: LostFoundItem) => {
-    if (!user) return false
-    return user.role === 'admin' || item.postedByUserId === user.id
+    if (!user) {
+      console.log('LostAndFound canEdit: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values
+    const itemUserId = item.postedByUserId
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const itemUserIdNum = itemUserId != null ? Number(itemUserId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = itemUserIdNum !== null && itemUserIdNum === currentUserIdNum
+    
+    console.log('LostAndFound canEdit check:', {
+      userId: currentUserId,
+      itemPostedBy: itemUserId,
+      itemUserIdNum,
+      currentUserIdNum,
+      userRole: user.role,
+      isAdmin,
+      isOwner,
+      canEditResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   const canDelete = (item: LostFoundItem) => {
-    if (!user) return false
-    return user.role === 'admin' || item.postedByUserId === user.id
+    if (!user) {
+      console.log('LostAndFound canDelete: No user logged in')
+      return false
+    }
+    
+    // Handle different data types and null values
+    const itemUserId = item.postedByUserId
+    const currentUserId = user.id
+    
+    // Convert both to numbers for comparison, handle null/undefined
+    const itemUserIdNum = itemUserId != null ? Number(itemUserId) : null
+    const currentUserIdNum = currentUserId != null ? Number(currentUserId) : null
+    
+    const isAdmin = user.role === 'admin'
+    const isOwner = itemUserIdNum !== null && itemUserIdNum === currentUserIdNum
+    
+    console.log('LostAndFound canDelete check:', {
+      userId: currentUserId,
+      itemPostedBy: itemUserId,
+      itemUserIdNum,
+      currentUserIdNum,
+      isAdmin,
+      isOwner,
+      canDeleteResult: isAdmin || isOwner
+    })
+    
+    return isAdmin || isOwner
   }
 
   const filtered = items.filter((item) => {
