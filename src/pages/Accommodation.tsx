@@ -307,14 +307,9 @@ export function Accommodation() {
             </div>
             <div className="md:col-span-2">
               <div className="mb-1 flex items-center justify-between">
-                <label className="block text-slate-700 dark:text-slate-300">Photos</label>
-                <button
-                  type="button"
-                  onClick={() => setPhotoFiles((prev) => [...prev, ...Array(3).fill(null)])}
-                  className="text-xs text-blue-600 dark:text-blue-400"
-                >
-                  + Add photos
-                </button>
+                <label className="block text-slate-700 dark:text-slate-300">
+                  Photos (up to 5 images)
+                </label>
               </div>
               
               {/* File Upload Section */}
@@ -352,13 +347,25 @@ export function Accommodation() {
                     className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm file:mr-2 file:rounded-full file:border-0 file:bg-blue-50 file:px-3 file:py-1 file:text-xs file:font-medium file:text-blue-700 hover:file:bg-blue-100 dark:border-slate-600 dark:bg-slate-800 dark:file:bg-blue-900/40 dark:file:text-blue-200"
                   />
                 </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  💡 Hold Ctrl/Cmd and click to select multiple images, or drag to select multiple files
+                </p>
                 
                 {/* Image Previews */}
                 {photoFiles.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Selected ({photoFiles.length}/5): {photoFiles.filter(f => f).map(f => f.name).join(', ')}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Selected ({photoFiles.length}/5): {photoFiles.filter(f => f).map(f => f.name).join(', ')}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setPhotoFiles([])}
+                        className="text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400"
+                      >
+                        Clear all
+                      </button>
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                       {photoFiles.filter(f => f).map((file, index) => (
                         <div key={index} className="relative group">
