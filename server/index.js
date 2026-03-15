@@ -806,7 +806,19 @@ app.delete('/api/accommodations/:id', async (req, res) => {
 // Medical Help / Blood Donors
 app.get('/api/medical-help', async (req, res) => {
   try {
-    const donors = await MedicalHelp.find()
+    const { search, bloodGroup } = req.query
+    let query = {}
+    
+    // Build filter conditions
+    if (search) {
+      query.fullName = { $regex: search, $options: 'i' }
+    }
+    
+    if (bloodGroup && bloodGroup !== 'All') {
+      query.bloodGroup = bloodGroup
+    }
+    
+    const donors = await MedicalHelp.find(query)
     res.json(donors)
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch medical help data' })
