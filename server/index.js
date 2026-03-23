@@ -47,6 +47,15 @@ app.use(cors({
   credentials: true
 }))
 
+// Set proper security headers
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('X-XSS-Protection', '1; mode=block')
+  next()
+})
+
 // Cloudinary images are served from CDN, no static folder needed
 
 // Root route
