@@ -50,6 +50,10 @@ export function AuthPage() {
   }, [])
 
   const handleGoogleSignIn = async () => {
+    console.log('Google sign-in clicked')
+    console.log('Client ID:', GOOGLE_CLIENT_ID)
+    console.log('Script loaded:', googleScriptLoaded)
+    
     if (!googleScriptLoaded) {
       setError('Google authentication is loading. Please wait...')
       return
