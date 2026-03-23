@@ -50,6 +50,7 @@ export function AuthPage() {
   }, [])
 
   const handleGoogleSignIn = async () => {
+    alert('Google sign-in clicked! Check console for details.')
     console.log('Google sign-in clicked')
     console.log('Client ID:', GOOGLE_CLIENT_ID)
     console.log('Script loaded:', googleScriptLoaded)
