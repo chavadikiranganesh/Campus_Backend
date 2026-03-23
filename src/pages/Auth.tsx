@@ -110,7 +110,7 @@ export function AuthPage() {
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: any) => {
           console.log('Google OAuth response:', response)
-          alert('Google OAuth successful!')
+          alert('Google OAuth successful! Redirecting to dashboard...')
           
           try {
             const payload = JSON.parse(atob(response.credential.split('.')[1]))
@@ -123,9 +123,12 @@ export function AuthPage() {
               avatar: payload.picture
             }
 
+            console.log('Google user data:', googleUser)
             localStorage.setItem('campus-utility-user', JSON.stringify(googleUser))
             
+            alert('User saved to localStorage, navigating to dashboard...')
             navigate('/dashboard', { replace: true })
+            alert('Navigation called!')
           } catch (error) {
             console.error('Google auth callback error:', error)
             setError('Failed to authenticate with Google. Please try again.')
