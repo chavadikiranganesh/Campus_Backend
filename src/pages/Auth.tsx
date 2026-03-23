@@ -128,7 +128,8 @@ export function AuthPage() {
             
             alert('User saved to localStorage, navigating to dashboard...')
             navigate('/dashboard', { replace: true })
-            alert('Navigation called!')
+            alert('Navigation called! Reloading page to update auth context...')
+            window.location.reload()
           } catch (error) {
             console.error('Google auth callback error:', error)
             setError('Failed to authenticate with Google. Please try again.')
