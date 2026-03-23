@@ -789,6 +789,8 @@ app.post('/api/notifications', async (req, res) => {
       userId: payload.userId ?? null,
       title: payload.title || 'Notification',
       message: payload.message || payload.body || '',
+      type: payload.type || 'general',
+      referenceId: payload.referenceId ?? null,
       read: false,
     })
     await notification.save()

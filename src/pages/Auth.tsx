@@ -1,9 +1,12 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 type Mode = 'login' | 'register'
+
+// Google OAuth configuration
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'your-google-client-id'
 
 export function AuthPage() {
   const { login, register } = useAuth()
@@ -15,30 +18,112 @@ export function AuthPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false)
+
+  // Load Google Identity Services script
+  useEffect(() => {
+    const loadGoogleScript = () => {
+      if (window.google) {
+        setGoogleScriptLoaded(true)
+        return
+      }
+
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      script.onload = () => {
+        setGoogleScriptLoaded(true)
+      }
+      script.onerror = () => {
+        console.error('Failed to load Google Identity Services script')
+        setError('Failed to load Google authentication. Please try again later.')
+      }
+      document.head.appendChild(script)
+
+      return () => {
+        document.head.removeChild(script)
+      }
+    }
+
+    loadGoogleScript()
+  }, [])
 
   const handleGoogleSignIn = async () => {
-    setError(null)
-    setLoading(true)
-    try {
-      // For now, simulate Google sign-in with a demo account
-      // In production, this would integrate with Google OAuth
-      const mockGoogleUser = {
-        id: 999,
-        name: 'Google User',
-        email: 'google.user@gmail.com',
-        role: 'user'
+    if (!googleScriptLoaded) {
+      setError('Google authentication is loading. Please wait...')
+      return
+    }
+
+    if (!window.google) {
+      setError('Google authentication is not available. Please try again later.')
+      return
+    }
+
+    if (GOOGLE_CLIENT_ID === 'your-google-client-id') {
+      // Fallback to mock implementation if no real client ID is configured
+      setError(null)
+      setLoading(true)
+      try {
+        const mockGoogleUser = {
+          id: 999,
+          name: 'Google User',
+          email: 'google.user@gmail.com',
+          role: 'user'
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        localStorage.setItem('campus-utility-user', JSON.stringify(mockGoogleUser))
+        
+        navigate('/dashboard', { replace: true })
+      } catch (err) {
+        setError('Google sign-in failed. Please try again.')
+      } finally {
+        setLoading(false)
       }
+      return
+    }
+
+    try {
+      setError(null)
+      setLoading(true)
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Use Google Identity Services for real OAuth
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: (response: any) => {
+          try {
+            // Decode JWT token
+            const payload = JSON.parse(atob(response.credential.split('.')[1]))
+            
+            const googleUser = {
+              id: payload.sub,
+              name: payload.name,
+              email: payload.email,
+              role: 'user',
+              avatar: payload.picture
+            }
+
+            // Store user in localStorage
+            localStorage.setItem('campus-utility-user', JSON.stringify(googleUser))
+            
+            navigate('/dashboard', { replace: true })
+          } catch (error) {
+            console.error('Google auth callback error:', error)
+            setError('Failed to authenticate with Google. Please try again.')
+          } finally {
+            setLoading(false)
+          }
+        }
+      })
+
+      // Show Google One Tap popup
+      window.google.accounts.id.prompt()
       
-      // Store user in localStorage (similar to AuthContext)
-      localStorage.setItem('campus-utility-user', JSON.stringify(mockGoogleUser))
-      
-      navigate('/dashboard', { replace: true })
-    } catch (err) {
+    } catch (error) {
+      console.error('Google sign-in error:', error)
       setError('Google sign-in failed. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -254,8 +339,9 @@ export function AuthPage() {
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            disabled={loading}
+            disabled={loading || !googleScriptLoaded}
             className="w-full flex items-center justify-center gap-3 py-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all duration-200 hover:scale-105 active:scale-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+            title={!googleScriptLoaded ? 'Loading Google authentication...' : 'Continue with Google'}
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -264,7 +350,7 @@ export function AuthPage() {
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
             <span className="text-slate-700 font-medium">
-              {loading ? 'Signing in...' : 'Continue with Google'}
+              {loading ? 'Signing in...' : (!googleScriptLoaded ? 'Loading...' : 'Continue with Google')}
             </span>
           </button>
 

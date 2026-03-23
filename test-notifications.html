@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Notifications</title>
+</head>
+<body>
+    <h1>Test Notifications Creation</h1>
+    <button onclick="createTestNotifications()">Create Test Notifications</button>
+    <div id="result"></div>
+
+    <script>
+        async function createTestNotifications() {
+            const notifications = [
+                {
+                    title: 'New study material: Calculus Notes',
+                    message: 'Advanced calculus notes are now available in marketplace',
+                    type: 'study_material',
+                    referenceId: 1
+                },
+                {
+                    title: 'New accommodation: Vinayaka Ladies Hostel',
+                    message: 'New PG accommodation available near campus with great facilities',
+                    type: 'accommodation',
+                    referenceId: 1
+                },
+                {
+                    title: 'New event: Hackathon 2026',
+                    message: 'Annual coding competition starting next week - Register now!',
+                    type: 'event',
+                    referenceId: 1
+                },
+                {
+                    title: 'Lost item: Wallet',
+                    message: 'A blue wallet was found near the library',
+                    type: 'lost_found',
+                    referenceId: 1
+                },
+                {
+                    title: 'New study group: Data Structures',
+                    message: 'Join our study group for better understanding of DS concepts',
+                    type: 'study_group',
+                    referenceId: 1
+                },
+                {
+                    title: 'System maintenance',
+                    message: 'Campus Utility will be under maintenance tonight from 2-4 AM',
+                    type: 'general',
+                    referenceId: null
+                }
+            ];
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Creating notifications...';
+
+            try {
+                for (const notif of notifications) {
+                    const response = await fetch('http://localhost:5000/api/notifications', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(notif)
+                    });
+                    
+                    if (response.ok) {
+                        console.log('Created:', notif.title);
+                    } else {
+                        console.error('Failed to create:', notif.title);
+                    }
+                }
+                resultDiv.innerHTML = '✅ Test notifications created successfully! Refresh your app to see them.';
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>

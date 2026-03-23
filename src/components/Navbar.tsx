@@ -75,7 +75,7 @@ export function Navbar() {
         searchResults.studyGroups.length
       : 0
 
-  const [notifications, setNotifications] = useState<{ id: number; title: string; body: string; createdAt: string }[]>([])
+  const [notifications, setNotifications] = useState<{ id: number; title: string; message: string; type: string; referenceId: number | null; createdAt: string }[]>([])
   const [notifOpen, setNotifOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -122,6 +122,47 @@ export function Navbar() {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  const handleNotificationClick = (notification: { type: string; referenceId: number | null; title: string }) => {
+    setNotifOpen(false)
+    
+    // If type is already specified, use it
+    switch (notification.type) {
+      case 'study_material':
+        navigate('/marketplace')
+        return
+      case 'accommodation':
+        navigate('/accommodation')
+        return
+      case 'event':
+        navigate('/events')
+        return
+      case 'lost_found':
+        navigate('/lost-found')
+        return
+      case 'study_group':
+        navigate('/study-groups')
+        return
+    }
+    
+    // For general notifications, determine type from title content
+    const title = notification.title.toLowerCase()
+    
+    if (title.includes('study material') || title.includes('material') || title.includes('notes') || title.includes('book') || title.includes('calculator') || title.includes('drafter') || title.includes('apron')) {
+      navigate('/marketplace')
+    } else if (title.includes('accommodation') || title.includes('hostel') || title.includes('pg')) {
+      navigate('/accommodation')
+    } else if (title.includes('event') || title.includes('hackathon') || title.includes('competition')) {
+      navigate('/events')
+    } else if (title.includes('lost') || title.includes('found')) {
+      navigate('/lost-found')
+    } else if (title.includes('study group') || title.includes('group')) {
+      navigate('/study-groups')
+    } else {
+      // Default to marketplace if we can't determine the type
+      navigate('/marketplace')
+    }
+  }
 
   const initials =
     user?.name
@@ -331,9 +372,13 @@ export function Navbar() {
                   ) : (
                     <ul className="max-h-64 overflow-y-auto">
                       {notifications.slice().reverse().slice(0, 10).map((n, index) => (
-                        <li key={n.id || `notif-${index}`} className="border-b border-slate-100 px-3 py-2 last:border-0 dark:border-slate-700">
+                        <li 
+                          key={n.id || `notif-${index}`} 
+                          className="border-b border-slate-100 px-3 py-2 last:border-0 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                          onClick={() => handleNotificationClick(n)}
+                        >
                           <p className="text-xs font-medium text-slate-900 dark:text-slate-50">{n.title}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{n.body || (n.createdAt ? new Date(n.createdAt).toLocaleString() : 'No date')}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400">{n.message || (n.createdAt ? new Date(n.createdAt).toLocaleString() : 'No date')}</p>
                         </li>
                       ))}
                     </ul>

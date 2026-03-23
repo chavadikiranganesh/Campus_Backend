@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Auth Test</title>
+    <meta name="google-signin-client_id" content="772992137298-l3ueq793i19d0q7ak7epu4t7lfukne2i.apps.googleusercontent.com">
+</head>
+<body>
+    <h1>Google Authentication Test</h1>
+    <p>Testing if Google OAuth works with current origins...</p>
+    
+    <div id="google-signin-button"></div>
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        window.onload = function() {
+            console.log('Google script loaded');
+            
+            if (window.google) {
+                console.log('Google accounts available:', window.google.accounts);
+                
+                window.google.accounts.id.initialize({
+                    client_id: "772992137298-l3ueq793i19d0q7ak7epu4t7lfukne2i.apps.googleusercontent.com",
+                    callback: function(response) {
+                        console.log('Google auth success:', response);
+                        const payload = JSON.parse(atob(response.credential.split('.')[1]));
+                        console.log('User data:', payload);
+                        alert('Google authentication successful! User: ' + payload.name);
+                    }
+                });
+                
+                window.google.accounts.id.renderButton(
+                    document.getElementById("google-signin-button"),
+                    { theme: "outline", size: "large" }
+                );
+                
+            } else {
+                console.error('Google script not loaded');
+            }
+        };
+    </script>
+</body>
+</html>
