@@ -139,7 +139,8 @@ export function AuthPage() {
       
     } catch (error) {
       console.error('Google sign-in error:', error)
-      setError('Google sign-in failed: ' + error.message)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError('Google sign-in failed: ' + errorMessage)
       setLoading(false)
     }
   }
