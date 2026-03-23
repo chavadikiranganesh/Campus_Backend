@@ -24,22 +24,19 @@ export function AuthPage() {
   useEffect(() => {
     const loadGoogleScript = () => {
       if (window.google) {
-        console.log('Google script already loaded')
         setGoogleScriptLoaded(true)
         return
       }
 
-      console.log('Loading Google Identity Services script...')
       const script = document.createElement('script')
       script.src = 'https://accounts.google.com/gsi/client'
       script.async = true
       script.defer = true
       script.onload = () => {
-        console.log('Google Identity Services script loaded successfully')
         setGoogleScriptLoaded(true)
       }
-      script.onerror = (error) => {
-        console.error('Failed to load Google Identity Services script:', error)
+      script.onerror = () => {
+        console.error('Failed to load Google Identity Services script')
         setError('Failed to load Google authentication. Please try again later.')
       }
       document.head.appendChild(script)
@@ -55,15 +52,18 @@ export function AuthPage() {
   }, [])
 
   const handleGoogleSignIn = async () => {
-    alert('Google sign-in clicked!')
-    console.log('=== Google OAuth Debug ===')
-    console.log('Client ID:', GOOGLE_CLIENT_ID)
-    console.log('Script loaded:', googleScriptLoaded)
-    console.log('Window object:', typeof window)
-    console.log('Window.google:', !!window.google)
-    
+    if (!googleScriptLoaded) {
+      setError('Google authentication is loading. Please wait...')
+      return
+    }
+
+    if (!window.google) {
+      setError('Google authentication is not available. Please try again later.')
+      return
+    }
+
     if (GOOGLE_CLIENT_ID === 'your-google-client-id') {
-      alert('Using mock Google sign-in (no real Client ID)')
+      // Fallback to mock implementation if no real client ID is configured
       setError(null)
       setLoading(true)
       try {
@@ -79,6 +79,7 @@ export function AuthPage() {
         localStorage.setItem('campus-utility-user', JSON.stringify(mockGoogleUser))
         
         navigate('/dashboard', { replace: true })
+        window.location.reload()
       } catch (err) {
         setError('Google sign-in failed. Please try again.')
       } finally {
@@ -86,21 +87,6 @@ export function AuthPage() {
       }
       return
     }
-    
-    if (!googleScriptLoaded) {
-      alert('Google script still loading...')
-      setError('Google authentication is loading. Please wait...')
-      return
-    }
-
-    if (!window.google) {
-      alert('window.google not available')
-      setError('Google authentication is not available. Please try again later.')
-      return
-    }
-    
-    alert('Initializing real Google OAuth...')
-    console.log('Initializing real Google OAuth')
 
     try {
       setError(null)
@@ -109,9 +95,6 @@ export function AuthPage() {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: any) => {
-          console.log('Google OAuth response:', response)
-          alert('Google OAuth successful! Redirecting to dashboard...')
-          
           try {
             const payload = JSON.parse(atob(response.credential.split('.')[1]))
             
@@ -123,12 +106,9 @@ export function AuthPage() {
               avatar: payload.picture
             }
 
-            console.log('Google user data:', googleUser)
             localStorage.setItem('campus-utility-user', JSON.stringify(googleUser))
             
-            alert('User saved to localStorage, navigating to dashboard...')
             navigate('/dashboard', { replace: true })
-            alert('Navigation called! Reloading page to update auth context...')
             window.location.reload()
           } catch (error) {
             console.error('Google auth callback error:', error)
@@ -143,8 +123,8 @@ export function AuthPage() {
       
     } catch (error) {
       console.error('Google sign-in error:', error)
-      alert('Google OAuth error: ' + (error instanceof Error ? error.message : 'Unknown error'))
-      setError('Google sign-in failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      setError('Google sign-in failed: ' + errorMessage)
       setLoading(false)
     }
   }
