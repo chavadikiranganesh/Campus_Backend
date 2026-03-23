@@ -94,10 +94,17 @@ export function AuthPage() {
       setError(null)
       setLoading(true)
       
+      console.log('Initializing Google OAuth with Client ID:', GOOGLE_CLIENT_ID)
+      
       // Use Google Identity Services for real OAuth
+      if (!window.google || !window.google.accounts) {
+        throw new Error('Google accounts not available')
+      }
+      
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: any) => {
+          console.log('Google OAuth response received:', response)
           try {
             // Decode JWT token
             const payload = JSON.parse(atob(response.credential.split('.')[1]))
@@ -109,6 +116,8 @@ export function AuthPage() {
               role: 'user',
               avatar: payload.picture
             }
+
+            console.log('Google user data:', googleUser)
 
             // Store user in localStorage
             localStorage.setItem('campus-utility-user', JSON.stringify(googleUser))
@@ -123,12 +132,14 @@ export function AuthPage() {
         }
       })
 
+      console.log('Google OAuth initialized, showing prompt...')
+      
       // Show Google One Tap popup
       window.google.accounts.id.prompt()
       
     } catch (error) {
       console.error('Google sign-in error:', error)
-      setError('Google sign-in failed. Please try again.')
+      setError('Google sign-in failed: ' + error.message)
       setLoading(false)
     }
   }
