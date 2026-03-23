@@ -24,25 +24,30 @@ export function AuthPage() {
   useEffect(() => {
     const loadGoogleScript = () => {
       if (window.google) {
+        console.log('Google script already loaded')
         setGoogleScriptLoaded(true)
         return
       }
 
+      console.log('Loading Google Identity Services script...')
       const script = document.createElement('script')
       script.src = 'https://accounts.google.com/gsi/client'
       script.async = true
       script.defer = true
       script.onload = () => {
+        console.log('Google Identity Services script loaded successfully')
         setGoogleScriptLoaded(true)
       }
-      script.onerror = () => {
-        console.error('Failed to load Google Identity Services script')
+      script.onerror = (error) => {
+        console.error('Failed to load Google Identity Services script:', error)
         setError('Failed to load Google authentication. Please try again later.')
       }
       document.head.appendChild(script)
 
       return () => {
-        document.head.removeChild(script)
+        if (document.head.contains(script)) {
+          document.head.removeChild(script)
+        }
       }
     }
 
