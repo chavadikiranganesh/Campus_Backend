@@ -55,23 +55,15 @@ export function AuthPage() {
   }, [])
 
   const handleGoogleSignIn = async () => {
-    alert('Google sign-in clicked! Check console for details.')
-    console.log('Google sign-in clicked')
+    alert('Google sign-in clicked!')
+    console.log('=== Google OAuth Debug ===')
     console.log('Client ID:', GOOGLE_CLIENT_ID)
     console.log('Script loaded:', googleScriptLoaded)
+    console.log('Window object:', typeof window)
+    console.log('Window.google:', !!window.google)
     
-    if (!googleScriptLoaded) {
-      setError('Google authentication is loading. Please wait...')
-      return
-    }
-
-    if (!window.google) {
-      setError('Google authentication is not available. Please try again later.')
-      return
-    }
-
     if (GOOGLE_CLIENT_ID === 'your-google-client-id') {
-      // Fallback to mock implementation if no real client ID is configured
+      alert('Using mock Google sign-in (no real Client ID)')
       setError(null)
       setLoading(true)
       try {
@@ -94,24 +86,33 @@ export function AuthPage() {
       }
       return
     }
+    
+    if (!googleScriptLoaded) {
+      alert('Google script still loading...')
+      setError('Google authentication is loading. Please wait...')
+      return
+    }
+
+    if (!window.google) {
+      alert('window.google not available')
+      setError('Google authentication is not available. Please try again later.')
+      return
+    }
+    
+    alert('Initializing real Google OAuth...')
+    console.log('Initializing real Google OAuth')
 
     try {
       setError(null)
       setLoading(true)
       
-      console.log('Initializing Google OAuth with Client ID:', GOOGLE_CLIENT_ID)
-      
-      // Use Google Identity Services for real OAuth
-      if (!window.google || !window.google.accounts) {
-        throw new Error('Google accounts not available')
-      }
-      
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (response: any) => {
-          console.log('Google OAuth response received:', response)
+          console.log('Google OAuth response:', response)
+          alert('Google OAuth successful!')
+          
           try {
-            // Decode JWT token
             const payload = JSON.parse(atob(response.credential.split('.')[1]))
             
             const googleUser = {
@@ -122,9 +123,6 @@ export function AuthPage() {
               avatar: payload.picture
             }
 
-            console.log('Google user data:', googleUser)
-
-            // Store user in localStorage
             localStorage.setItem('campus-utility-user', JSON.stringify(googleUser))
             
             navigate('/dashboard', { replace: true })
@@ -137,15 +135,12 @@ export function AuthPage() {
         }
       })
 
-      console.log('Google OAuth initialized, showing prompt...')
-      
-      // Show Google One Tap popup
       window.google.accounts.id.prompt()
       
     } catch (error) {
       console.error('Google sign-in error:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-      setError('Google sign-in failed: ' + errorMessage)
+      alert('Google OAuth error: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      setError('Google sign-in failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
       setLoading(false)
     }
   }
