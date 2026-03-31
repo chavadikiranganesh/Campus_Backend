@@ -19,6 +19,7 @@ export function AuthPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   // Load Google Identity Services script
   useEffect(() => {
@@ -280,14 +281,33 @@ export function AuthPage() {
             
             <div className={mode === 'register' ? 'scale-in' : ''}>
               <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="modern-input w-full"
-                placeholder="Minimum 6 characters"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="modern-input w-full pr-10"
+                  placeholder="Minimum 6 characters"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 p-2 rounded-md transition-all duration-200 shadow-sm"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 0 1-6 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C2.458 6.477 5.953 1.64 9 1.64c1.047 0 2.542.837 3.542 1.64l-1.088 1.087-1.087 1.088z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M1 12s4-8 11.714 0 11.714 0 0 1 4 8 8 4 8 4 8 4 8 4 8 4 8 4 8 4 8z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a3 3 0 11-6 0 3 3 0 0 1-6 0z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             {error && (
