@@ -53,6 +53,8 @@ export function AuthPage() {
   }, [])
 
   const handleGoogleSignIn = async () => {
+    console.log('Password toggle state:', showPassword)
+    
     if (!googleScriptLoaded) {
       setError('Google authentication is loading. Please wait...')
       return
@@ -292,7 +294,10 @@ export function AuthPage() {
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  onClick={() => {
+                    console.log('Toggle button clicked, current showPassword:', showPassword)
+                    setShowPassword(!showPassword)
+                  }}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 p-2 rounded-md transition-all duration-200 shadow-sm"
                 >
                   {showPassword ? (
